@@ -10,9 +10,11 @@ class Robot:
     STR_FLOOR = 25
     SETTLE_TIME = 500
     I_CLAMP = 25
+    ACCEL_ZONE = 100
+    DECEL_ZONE = 100
 
-    STR_KP = 7.0
-    STR_KD = 10.0
+    STR_KP = 5.0
+    STR_KD = 12.0
     STR_KI = 0.05
     TURN_KP = 3.0
     TURN_KD = 7.0
@@ -56,37 +58,45 @@ class Robot:
             status = "OK" if abs(err) < 0.8 else "Check Me"
             print(f"{name:15} | {target:7} | {err:5.2f} [{status}]")
         print("="*35 + "\n")
+        
+        total_err = sum(abs(e) for _, _, e in self.report_card)
+        avg_err = total_err / len(self.report_card)
+        bias = sum(e for _, _, e in self.report_card) # Net direction of drift
+
+        print("-" * 35)
+        print(f"Total Cumulative Error: {total_err:.2f}°")
+        print(f"Average Error per Move: {avg_err:.2f}°")
+        print(f"Net Bias (Systemic Drift): {bias:.2f}°")
+        print("="*35 + "\n")
 
     def straight(self, target_distance_deg, speed, target_heading=None):
         """Drive the robot straight for a given distance with PID heading correction."""
+        wait(200)
         if target_heading is None:
             target_heading = self.get_yaw()
         self.left_motor.reset_angle(0)
         self.right_motor.reset_angle(0)
         last_error, integral = 0, 0
-        accel_zone, decel_zone = 50, 100 
 
         print(f"\n--- Straight: {target_distance_deg} deg ---")
 
         while True:
             current_dist = (abs(self.left_motor.angle()) + abs(self.right_motor.angle())) / 2
             if current_dist >= abs(target_distance_deg): break
-            
-            # Ramping Logic
-            if current_dist < accel_zone:
-                current_speed = max(self.STR_FLOOR, (current_dist / accel_zone) * speed)
-            elif (abs(target_distance_deg) - current_dist) < decel_zone:
+
+            if current_dist < self.ACCEL_ZONE:
+                current_speed = max(self.STR_FLOOR, (current_dist / self.ACCEL_ZONE) * speed)
+            elif (abs(target_distance_deg) - current_dist) < self.DECEL_ZONE:
                 dist_remaining = abs(target_distance_deg) - current_dist
-                current_speed = max(self.STR_FLOOR, (dist_remaining / decel_zone) * speed)
+                current_speed = max(self.STR_FLOOR, (dist_remaining / self.DECEL_ZONE) * speed)
             else:
                 current_speed = speed
 
-            # FIX: Used get_shortest_error to prevent ±180 flip issues
             error = self.get_shortest_error(target_heading)
             integral = max(min(integral + error, self.I_CLAMP), -self.I_CLAMP)
             derivative = error - last_error
             correction = (self.STR_KP * error) + (self.STR_KI * integral) + (self.STR_KD * derivative)
-            
+
             self.left_motor.dc(int(current_speed + correction))
             self.right_motor.dc(int(current_speed - correction))
 
@@ -99,7 +109,6 @@ class Robot:
         self.left_motor.stop()
         self.right_motor.stop()
         wait(self.SETTLE_TIME)
-        # FIX: Log the target_heading so the error actually means something
         self.log_result("Straight", target_heading)
 
     def turn_tank(self, target_angle, speed=100):
@@ -112,7 +121,7 @@ class Robot:
             pwr = (error * self.TURN_KP) + (integral * self.TURN_KI) + (self.TURN_KD * (error - last_error))
             
             if abs(error) > 0.5 and abs(pwr) < self.TURN_FLOOR:
-                pwr = self.TURN_FLOOR if pwr > 0 else -self.TURN_FLOOR
+                pwr = self.TURN_FLOOR + 2  if pwr > 0 else -(self.TURN_FLOOR + 2) 
             if abs(error) < 0.5:
                 pwr = 0
 
@@ -124,7 +133,6 @@ class Robot:
             stable_count = stable_count + 1 if abs(error) < 0.6 else 0
             wait(10)
 
-        # FIX: Standardized motor stop to include both motors
         self.left_motor.stop()
         self.right_motor.stop()
         wait(self.SETTLE_TIME)
@@ -166,17 +174,20 @@ class Robot:
         self.log_result("Pivot Turn", target_angle)
 
 # --- EXECUTION ---
+# --- FINAL STRESS TEST ---
 bot = Robot()
 bot.hub.imu.reset_heading(0)
 
-for i in range(4):
-        bot.straight(600, 60, target_heading=0)
-        bot.turn_tank(90)
-        bot.straight(600, 60, target_heading=90)
-        bot.turn_tank(180)
-        bot.straight(600, 60, target_heading=180)
-        bot.turn_tank(-90)
-        bot.straight(600, 60, target_heading=-90)
+# 1. Long high-speed sprint
+bot.straight(1200, 85, target_heading=0) 
 
+# 2. Fast 180-degree pivot (Testing KD damping)
+bot.turn_tank(180, speed=80) 
+
+# 3. Return sprint at different heading
+bot.straight(1200, 85, target_heading=180)
+
+# 4. Final precision alignment
+bot.turn_tank(0, speed=50)
 
 bot.print_diagnostic_report()
