@@ -10,11 +10,11 @@ from pybricks.tools import wait
 # ============================================================
 
 bot = Robot()
+box = BlackBox()                              # ← top
+box.start_run("Mission 1", speed=450)        # ← top
 bot.gyro_reset()
 
-# ── Mission Code ─────────────────────────────────────────────────────────────
-bot.straight(500,300,0)
+# ... your mission moves here ...
 
-
-# ── End of Mission ───────────────────────────────────────────────────────────
-bot.print_diagnostic_report()
+bot.print_diagnostic_report()               # ← bottom
+box.save(bot.report_card)                   # ← bottom
