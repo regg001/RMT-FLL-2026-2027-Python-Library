@@ -1,6 +1,7 @@
 from robot import Robot
 from pybricks.parameters import Port, Color
 from pybricks.tools import wait
+from blackbox import BlackBox
 
 # ============================================================
 # mission1.py — FLL 2026-2027
