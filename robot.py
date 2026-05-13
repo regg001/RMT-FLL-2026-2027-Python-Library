@@ -39,7 +39,7 @@ class Robot:
     AXLE_TRACK     = 114
 
     def __init__(self, left_port=Port.B, right_port=Port.D):
-        self.hub = PrimeHub()
+        self.hub         = PrimeHub()
         self.left_motor  = Motor(left_port,  Direction.COUNTERCLOCKWISE)
         self.right_motor = Motor(right_port, Direction.CLOCKWISE)
         self.drive_base  = DriveBase(
@@ -73,38 +73,124 @@ class Robot:
         self.hub.light.off()
 
     # ────────────────────────────────────────────────────────────────────────
+    # PEAK LOAD HELPER
+    # ────────────────────────────────────────────────────────────────────────
+
+    def _peak_load(self):
+        """
+        Sample the highest motor load across both drive motors.
+        Called each loop iteration inside movement methods to track
+        the worst-case mechanical stress seen during a move.
+        Returns a percentage (0–100).
+        """
+        try:
+            left_load  = abs(self.left_motor.load())
+            right_load = abs(self.right_motor.load())
+            return max(left_load, right_load)
+        except:
+            return 0
+
+    # ────────────────────────────────────────────────────────────────────────
     # DIAGNOSTIC LOGGING
     # ────────────────────────────────────────────────────────────────────────
 
-    def log_result(self, move_name, target):
-        final_err = self.get_shortest_error(target)
-        self.report_card.append((move_name, round(float(target), 2), final_err))
+    def log_result(self, move_name, target, peak_load=0):
+        """
+        Append a move result to the report card.
 
-    def print_diagnostic_report(self):
+        report_card entries are 4-tuples:
+            (move_name, target_angle, final_error, peak_load)
+
+        peak_load is the highest motor load % seen during the move.
+        """
+        final_err = self.get_shortest_error(target)
+        self.report_card.append((move_name, round(float(target), 2), final_err, peak_load))
+
+    def print_diagnostic_report(self, run=None, mission=None, voltage=None, elapsed=None):
+        """
+        Print a formatted post-run report to the terminal.
+
+        Optional args pull in context from BlackBox for a richer header.
+        Call with no args for a basic report, or pass BlackBox values:
+
+            bot.print_diagnostic_report(
+                run     = box.run_count,
+                mission = box.current_mission,
+                voltage = box.current_voltage,
+                elapsed = box.timer.time()
+            )
+        """
         if not self.report_card:
             print("No moves recorded yet.")
             return
-        print("\n" + "=" * 35)
+
+        W = 52  # report width
+
+        # ── Header ───────────────────────────────────────────────────────────
+        print("\n" + "=" * W)
         print("    MISSION DIAGNOSTIC REPORT")
-        print("=" * 35)
-        print(f"{'MOVE':15} | {'TARGET':7} | {'ERROR':5}")
-        print("-" * 35)
-        for name, target, err in self.report_card:
-            status = "OK" if abs(err) < 0.8 else "Check Me"
-            print(f"{name:15} | {target:7} | {err:5.2f} [{status}]")
-        print("=" * 35)
-        total_err = sum(abs(e) for _, _, e in self.report_card)
+
+        # Context line — only shown if at least one value was passed
+        if any(v is not None for v in [run, mission, voltage, elapsed]):
+            parts = []
+            if run     is not None: parts.append("Run #{}".format(run))
+            if mission is not None: parts.append(mission)
+            if voltage is not None: parts.append("{}mv".format(voltage))
+            if elapsed is not None: parts.append("{:.1f}s".format(elapsed / 1000))
+            print("    {}".format(" | ".join(parts)))
+
+        print("=" * W)
+
+        # ── Move Table ───────────────────────────────────────────────────────
+        print("{:15} | {:7} | {:7} | {:9}".format(
+            "MOVE", "TARGET", "ERROR", "PEAK LOAD"))
+        print("-" * W)
+
+        worst_err  = 0
+        worst_name = ""
+        worst_tgt  = 0
+
+        for name, target, err, peak_load in self.report_card:
+            status = "OK" if abs(err) < 0.8 else "CHECK"
+            print("{:15} | {:7} | {:+6.2f}° | {:7.0f}%  [{}]".format(
+                name, target, err, peak_load, status))
+            if abs(err) > worst_err:
+                worst_err  = abs(err)
+                worst_name = name
+                worst_tgt  = target
+
+        # ── Summary Stats ────────────────────────────────────────────────────
+        print("=" * W)
+        total_err = sum(abs(e) for _, _, e, _ in self.report_card)
         avg_err   = total_err / len(self.report_card)
-        bias      = sum(e for _, _, e in self.report_card)
-        print(f"Total Cumulative Error:    {total_err:.2f} deg")
-        print(f"Average Error per Move:    {avg_err:.2f} deg")
-        print(f"Net Bias (Systemic Drift): {bias:.2f} deg")
+        bias      = sum(e for _, _, e, _ in self.report_card)
+        avg_load  = sum(l for _, _, _, l in self.report_card) / len(self.report_card)
+
+        print("Total Cumulative Error:    {:.2f}°".format(total_err))
+        print("Average Error per Move:    {:.2f}°".format(avg_err))
+        print("Net Bias (Systemic Drift): {:+.2f}°".format(bias))
+        print("Average Peak Load:         {:.0f}%".format(avg_load))
+
+        # ── Worst Move Callout ───────────────────────────────────────────────
+        print("-" * W)
+        print("Worst Move: {} → {}° | error {:+.2f}°".format(
+            worst_name, worst_tgt, worst_err if bias >= 0 else -worst_err))
+
+        # ── Warnings ─────────────────────────────────────────────────────────
         if abs(bias) > 3:
             direction = "RIGHT" if bias > 0 else "LEFT"
-            print(f"\nWARNING: {direction} bias of {abs(bias):.2f} deg detected")
+            print("WARNING: {} bias of {:.2f}° — check TURN_FLOOR".format(
+                direction, abs(bias)))
         else:
-            print("\nBias within acceptable range.")
-        print("=" * 35 + "\n")
+            print("Bias within acceptable range.")
+
+        if avg_load > 60:
+            print("WARNING: High motor load ({:.0f}%) — check for resistance".format(avg_load))
+
+        if voltage is not None and voltage < 7400:
+            print("WARNING: Low battery ({}mv) — consider swapping".format(voltage))
+
+        print("=" * W + "\n")
 
     # ────────────────────────────────────────────────────────────────────────
     # MOVEMENT METHODS
@@ -115,12 +201,13 @@ class Robot:
         if target_heading is None:
             target_heading = self.get_yaw()
         wheel_circumference = self.WHEEL_DIAMETER * 3.14159
-        target_deg = abs((distance_mm / wheel_circumference) * 360)
+        target_deg  = abs((distance_mm / wheel_circumference) * 360)
         self.left_motor.reset_angle(0)
         self.right_motor.reset_angle(0)
-        last_error = 0
-        integral   = 0
-        direction  = 1 if distance_mm > 0 else -1
+        last_error  = 0
+        integral    = 0
+        direction   = 1 if distance_mm > 0 else -1
+        peak_load   = 0
         self.timer.reset()
         while True:
             current_dist = (abs(self.left_motor.angle()) + abs(self.right_motor.angle())) / 2
@@ -141,15 +228,17 @@ class Robot:
             correction = ((self.STR_KP * error) + (self.STR_KI * integral) + (self.STR_KD * derivative))
             self.drive_base.drive(direction * current_speed, correction)
             last_error = error
+            peak_load  = max(peak_load, self._peak_load())
             wait(10)
         self.drive_base.stop()
         wait(self.SETTLE_TIME)
-        self.log_result("Straight", target_heading)
+        self.log_result("Straight", target_heading, peak_load)
 
     def turn_tank(self, target_angle, speed=100, timeout=5000):
         last_error   = self.get_shortest_error(target_angle)
         integral     = 0
         stable_count = 0
+        peak_load    = 0
         self.timer.reset()
         while stable_count < 10:
             if self.timer.time() > timeout:
@@ -170,18 +259,20 @@ class Robot:
             self.left_motor.dc(pwr)
             self.right_motor.dc(-pwr)
             last_error   = error
+            peak_load    = max(peak_load, self._peak_load())
             stable_count = stable_count + 1 if abs(error) < 0.6 else 0
             wait(10)
         self.left_motor.stop()
         self.right_motor.stop()
         wait(self.SETTLE_TIME)
-        self.log_result("Tank Turn", target_angle)
+        self.log_result("Tank Turn", target_angle, peak_load)
 
     def turn_pivot(self, target_angle, speed=40, pivot_side="left", timeout=5000):
         kp, ki, kd   = 4.5, 0.12, 6.0
         last_error   = self.get_shortest_error(target_angle)
         integral     = 0
         stable_count = 0
+        peak_load    = 0
         self.timer.reset()
         while stable_count < 10:
             if self.timer.time() > timeout:
@@ -206,12 +297,81 @@ class Robot:
                 self.right_motor.stop()
                 self.left_motor.dc(pwr)
             last_error   = error
+            peak_load    = max(peak_load, self._peak_load())
             stable_count = stable_count + 1 if abs(error) < 0.6 else 0
             wait(10)
         self.left_motor.stop()
         self.right_motor.stop()
         wait(self.SETTLE_TIME)
-        self.log_result("Pivot Turn", target_angle)
+        self.log_result("Pivot Turn", target_angle, peak_load)
+
+    def turn_curve(self, target_angle, speed=150, curve_ratio=0.4, timeout=5000):
+        """
+        Arc turn using both wheels at different speeds.
+
+        The outer wheel runs at full speed. The inner wheel runs at
+        speed * curve_ratio, producing a smooth arc rather than a
+        point turn or pivot.
+
+        curve_ratio controls the arc shape:
+          0.0  →  inner wheel stopped    (same as pivot turn)
+          0.4  →  gentle arc             (recommended default)
+          0.7  →  wide, gradual sweep
+          1.0  →  straight (both wheels equal — no turn)
+
+        Turn direction is determined automatically from target_angle
+        relative to current heading. No need to specify left or right.
+
+        Args:
+            target_angle:  Gyro heading to reach (degrees)
+            speed:         Outer wheel speed (dc %)
+            curve_ratio:   Inner wheel speed as a fraction of outer (0.0–1.0)
+            timeout:       Safety cutoff in milliseconds
+
+        Usage:
+            bot.turn_curve(45)                       # gentle right arc to 45°
+            bot.turn_curve(-30, speed=120)            # gentle left arc to -30°
+            bot.turn_curve(90, curve_ratio=0.2)       # tighter arc
+        """
+        curve_ratio  = max(0.0, min(1.0, curve_ratio))
+        last_error   = self.get_shortest_error(target_angle)
+        stable_count = 0
+        peak_load    = 0
+        self.timer.reset()
+
+        while stable_count < 10:
+            if self.timer.time() > timeout:
+                print("WARNING: turn_curve() timed out")
+                break
+
+            error = self.get_shortest_error(target_angle)
+
+            if error > 0:
+                outer_pwr = speed
+                inner_pwr = int(speed * curve_ratio)
+            else:
+                outer_pwr = -speed
+                inner_pwr = -int(speed * curve_ratio)
+
+            if abs(inner_pwr) < self.TURN_FLOOR and inner_pwr != 0:
+                inner_pwr = self.TURN_FLOOR if inner_pwr > 0 else -self.TURN_FLOOR
+
+            if error > 0:
+                self.left_motor.dc(outer_pwr)
+                self.right_motor.dc(inner_pwr)
+            else:
+                self.right_motor.dc(-outer_pwr)
+                self.left_motor.dc(-inner_pwr)
+
+            last_error   = error
+            peak_load    = max(peak_load, self._peak_load())
+            stable_count = stable_count + 1 if abs(error) < 0.6 else 0
+            wait(10)
+
+        self.left_motor.stop()
+        self.right_motor.stop()
+        wait(self.SETTLE_TIME)
+        self.log_result("Curve Turn", target_angle, peak_load)
 
     def move_attachment(self, port, degrees, speed, then=Stop.HOLD, wait_done=True):
         m = Motor(port)

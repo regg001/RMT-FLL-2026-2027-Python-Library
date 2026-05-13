@@ -11,11 +11,21 @@ from blackbox import BlackBox
 # ============================================================
 
 bot = Robot()
-box = BlackBox()                              # ← top
-box.start_run("Mission 1", speed=450)        # ← top
+box = BlackBox(bot.hub)                       # ← pass bot.hub for voltage logging
+box.start_run("Mission 1", speed=450)         # ← captures voltage snapshot here
 bot.gyro_reset()
 
-# ... your mission moves here ...
+# ─── Your mission moves here ──────────────────────────────────────────────────
+bot.turn_pivot(180)
+bot.turn_tank(-90)
+bot.turn_tank(90)
+bot.turn_tank(0)
 
-bot.print_diagnostic_report()               # ← bottom
-box.save(bot.report_card)                   # ← bottom
+# ─────────────────────────────────────────────────────────────────────────────
+bot.print_diagnostic_report(
+    run     = box.run_count,
+    mission = box.current_mission,
+    voltage = box.current_voltage,
+    elapsed = box.timer.time()
+)
+box.save(bot.report_card)                     # ← saves to hub files

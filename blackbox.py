@@ -6,10 +6,16 @@ from pybricks.tools import wait, StopWatch
 #
 # USAGE IN MISSION FILES:
 #   from blackbox import BlackBox
-#   box = BlackBox()
+#   box = BlackBox(bot.hub)
 #   box.start_run("Mission 1", speed=450)
 #   # ... your mission code ...
 #   box.save(bot.report_card)
+#
+# CHANGES FROM PREVIOUS VERSION:
+#   - BlackBox(hub) now takes the hub as an argument to read battery voltage
+#   - start_run() captures voltage_mv at mission start automatically
+#   - report_card entries are now 4-tuples: (move, target, error, peak_load)
+#   - CSV gains two new columns: voltage_mv, peak_load
 #
 # READING LOGS AFTER COMPETITION:
 #   - Full text log:  run read_log.py in VSCode (F5)
@@ -34,6 +40,10 @@ class BlackBox:
 
     Both files are append-only — data accumulates across the
     entire season until you explicitly call clear().
+
+    New in this version:
+      - Captures battery voltage at mission start (battery decay analysis)
+      - Logs peak motor load per move (mechanical stress detection)
     """
 
     TXT_FILE     = "blackbox.txt"
@@ -41,13 +51,20 @@ class BlackBox:
     COUNT_FILE   = "run_count.txt"
     SESSION_FILE = "session_id.txt"
 
-    def __init__(self):
+    def __init__(self, hub):
+        """
+        Args:
+            hub: PrimeHub instance from your Robot — needed to read battery voltage.
+                 Pass bot.hub from your mission file.
+        """
+        self.hub        = hub
         self.run_count  = self._load_int(self.COUNT_FILE,   default=0)
         self.session_id = self._load_int(self.SESSION_FILE, default=0)
 
         # These are set by start_run() before each mission
         self.current_mission = "Unknown"
         self.current_speed   = 0
+        self.current_voltage = 0
         self.timer           = StopWatch()
 
         # Track moves logged this run for session_summary()
@@ -70,6 +87,7 @@ class BlackBox:
     def start_run(self, mission_name, speed):
         """
         Call at the start of each mission, before gyro_reset().
+        Automatically snapshots battery voltage at mission start.
 
         Args:
             mission_name: descriptive name (e.g. "Mission 1" or "Watercraft")
@@ -78,12 +96,13 @@ class BlackBox:
         self.run_count       += 1
         self.current_mission  = mission_name
         self.current_speed    = speed
+        self.current_voltage  = self.hub.battery.voltage()
         self.timer.reset()
 
         self._save_int(self.COUNT_FILE, self.run_count)
 
-        print("BlackBox: Run #{} | {} | {}mm/s".format(
-            self.run_count, mission_name, speed))
+        print("BlackBox: Run #{} | {} | {}mm/s | {}mv".format(
+            self.run_count, mission_name, speed, self.current_voltage))
 
     def save(self, report_card):
         """
@@ -92,36 +111,42 @@ class BlackBox:
         Writes one entry to both blackbox.txt and blackbox.csv.
 
         Args:
-            report_card: list of (move_name, target, error) tuples
-                         from the Robot class diagnostic system
+            report_card: list of (move_name, target, error, peak_load) tuples
+                         from the Robot class diagnostic system.
+                         peak_load is the highest motor load % seen during the move.
         """
         if not report_card:
             print("BlackBox: Nothing to save — report_card is empty.")
             return
 
         # Compute summary statistics
-        total_err = sum(abs(e) for _, _, e in report_card)
-        avg_err   = total_err / len(report_card)
-        bias      = sum(e for _, _, e in report_card)
+        errors    = [e for _, _, e, _ in report_card]
+        loads     = [l for _, _, _, l in report_card]
+        total_err = sum(abs(e) for e in errors)
+        avg_err   = total_err / len(errors)
+        bias      = sum(errors)
         bias_dir  = "RIGHT" if bias > 0 else "LEFT" if bias < 0 else "NONE"
-        elapsed   = self.timer.time()   # ms since start_run()
+        avg_load  = sum(loads) / len(loads)
+        elapsed   = self.timer.time()
 
         # Save to both formats
-        self._write_txt(report_card, total_err, avg_err, bias, bias_dir, elapsed)
+        self._write_txt(report_card, total_err, avg_err, bias, bias_dir, avg_load, elapsed)
         self._write_csv(report_card, elapsed)
 
         # Track for session summary
         self._session_runs.append({
-            "run":     self.run_count,
-            "mission": self.current_mission,
-            "avg_err": avg_err,
-            "bias":    bias,
-            "moves":   len(report_card),
-            "elapsed": elapsed,
+            "run":      self.run_count,
+            "mission":  self.current_mission,
+            "avg_err":  avg_err,
+            "bias":     bias,
+            "moves":    len(report_card),
+            "elapsed":  elapsed,
+            "voltage":  self.current_voltage,
+            "avg_load": avg_load,
         })
 
-        print("BlackBox: Run #{} saved. Avg error: {:.2f}° | Bias: {:.2f}°".format(
-            self.run_count, avg_err, bias))
+        print("BlackBox: Run #{} saved. Avg error: {:.2f}° | Bias: {:.2f}° | Voltage: {}mv | Avg Load: {:.0f}%".format(
+            self.run_count, avg_err, bias, self.current_voltage, avg_load))
 
     def print_history(self):
         """
@@ -147,31 +172,42 @@ class BlackBox:
             print("No runs recorded this session.")
             return
 
-        print("\n" + "=" * 40)
+        print("\n" + "=" * 48)
         print("  SESSION {} SUMMARY".format(self.session_id))
-        print("=" * 40)
-        print("{:5} | {:15} | {:8} | {:6}".format(
-            "RUN", "MISSION", "AVG ERR", "BIAS"))
-        print("-" * 40)
+        print("=" * 48)
+        print("{:5} | {:15} | {:8} | {:6} | {:7} | {:4}".format(
+            "RUN", "MISSION", "AVG ERR", "BIAS", "VOLTAGE", "LOAD"))
+        print("-" * 48)
 
         for r in self._session_runs:
-            print("{:5} | {:15} | {:7.2f}° | {:+.2f}°".format(
+            print("{:5} | {:15} | {:7.2f}° | {:+.2f}° | {:7}mv | {:3.0f}%".format(
                 r["run"], r["mission"][:15],
-                r["avg_err"], r["bias"]))
+                r["avg_err"], r["bias"],
+                r["voltage"], r["avg_load"]))
 
         # Session statistics
-        session_avg = sum(r["avg_err"] for r in self._session_runs) / len(self._session_runs)
-        session_bias = sum(r["bias"] for r in self._session_runs) / len(self._session_runs)
+        session_avg     = sum(r["avg_err"]  for r in self._session_runs) / len(self._session_runs)
+        session_bias    = sum(r["bias"]     for r in self._session_runs) / len(self._session_runs)
+        session_voltage = sum(r["voltage"]  for r in self._session_runs) / len(self._session_runs)
+        session_load    = sum(r["avg_load"] for r in self._session_runs) / len(self._session_runs)
 
-        print("=" * 40)
-        print("Session avg error: {:.2f}°".format(session_avg))
-        print("Session avg bias:  {:+.2f}°".format(session_bias))
+        print("=" * 48)
+        print("Session avg error:   {:.2f}°".format(session_avg))
+        print("Session avg bias:    {:+.2f}°".format(session_bias))
+        print("Session avg voltage: {:.0f}mv".format(session_voltage))
+        print("Session avg load:    {:.0f}%".format(session_load))
 
         if abs(session_bias) > 2:
             direction = "RIGHT" if session_bias > 0 else "LEFT"
             print("WARNING: Consistent {} bias — check TURN_FLOOR".format(direction))
 
-        print("=" * 40 + "\n")
+        if session_voltage < 7400:
+            print("WARNING: Low battery ({:.0f}mv) — consider swapping".format(session_voltage))
+
+        if session_load > 60:
+            print("WARNING: High avg motor load ({:.0f}%) — check for mechanical resistance".format(session_load))
+
+        print("=" * 48 + "\n")
 
     def clear(self, confirm=False):
         """
@@ -218,46 +254,48 @@ class BlackBox:
         print("")
         print("CSV Columns:")
         print("  run, session, mission, move,")
-        print("  target, error, abs_error,")
-        print("  status, speed, elapsed_ms")
+        print("  target, error, abs_error, status,")
+        print("  speed, elapsed_ms, voltage_mv, peak_load")
         print("")
         print("Suggested charts in Excel:")
         print("  - Line chart: error over run number")
         print("  - Bar chart: avg error per mission")
-        print("  - Scatter: error vs elapsed_ms (battery drain)")
+        print("  - Scatter: error vs voltage_mv (battery decay)")
+        print("  - Line: peak_load over run number (motor wear)")
         print("=" * 40 + "\n")
 
     # ────────────────────────────────────────────────────────────────────────
     # PRIVATE WRITE METHODS
     # ────────────────────────────────────────────────────────────────────────
 
-    def _write_txt(self, report_card, total_err, avg_err, bias, bias_dir, elapsed):
+    def _write_txt(self, report_card, total_err, avg_err, bias, bias_dir, avg_load, elapsed):
         """Write one run's data to the human-readable text log."""
         try:
             with open(self.TXT_FILE, "a") as f:
-                f.write("=" * 36 + "\n")
+                f.write("=" * 44 + "\n")
                 f.write("Run #{} | Session {} | {}\n".format(
                     self.run_count, self.session_id, self.current_mission))
-                f.write("Speed: {}mm/s | Time: {}ms\n".format(
-                    self.current_speed, elapsed))
-                f.write("=" * 36 + "\n")
+                f.write("Speed: {}mm/s | Time: {}ms | Battery: {}mv\n".format(
+                    self.current_speed, elapsed, self.current_voltage))
+                f.write("=" * 44 + "\n")
 
                 # Individual move results
-                f.write("{:15} | {:7} | {:6} | {}\n".format(
-                    "MOVE", "TARGET", "ERROR", "STATUS"))
-                f.write("-" * 36 + "\n")
+                f.write("{:15} | {:7} | {:6} | {:9} | {}\n".format(
+                    "MOVE", "TARGET", "ERROR", "PEAK LOAD", "STATUS"))
+                f.write("-" * 44 + "\n")
 
-                for name, target, err in report_card:
+                for name, target, err, peak_load in report_card:
                     status = "OK" if abs(err) < 0.8 else "CHECK"
-                    f.write("{:15} | {:7.1f} | {:+6.2f} | {}\n".format(
-                        name, target, err, status))
+                    f.write("{:15} | {:7.1f} | {:+6.2f} | {:8.0f}% | {}\n".format(
+                        name, target, err, peak_load, status))
 
                 # Summary statistics
-                f.write("=" * 36 + "\n")
+                f.write("=" * 44 + "\n")
                 f.write("Total Error:  {:.2f} deg\n".format(total_err))
                 f.write("Avg Error:    {:.2f} deg\n".format(avg_err))
                 f.write("Net Bias:     {:+.2f} deg ({})\n".format(bias, bias_dir))
-                f.write("=" * 36 + "\n\n")
+                f.write("Avg Load:     {:.0f}%\n".format(avg_load))
+                f.write("=" * 44 + "\n\n")
 
         except OSError as e:
             print("BlackBox ERROR writing txt: {}".format(e))
@@ -268,15 +306,15 @@ class BlackBox:
 
         CSV columns:
             run, session, mission, move, target, error,
-            abs_error, status, speed, elapsed_ms
+            abs_error, status, speed, elapsed_ms, voltage_mv, peak_load
         """
         try:
             with open(self.CSV_FILE, "a") as f:
-                for name, target, err in report_card:
-                    status   = "OK" if abs(err) < 0.8 else "CHECK"
-                    abs_err  = abs(err)
+                for name, target, err, peak_load in report_card:
+                    status  = "OK" if abs(err) < 0.8 else "CHECK"
+                    abs_err = abs(err)
 
-                    row = "{},{},{},{},{:.2f},{:.4f},{:.4f},{},{},{}\n".format(
+                    row = "{},{},{},{},{:.2f},{:.4f},{:.4f},{},{},{},{},{:.1f}\n".format(
                         self.run_count,           # run number (all-time)
                         self.session_id,          # session (power cycle)
                         self.current_mission,     # mission name
@@ -287,6 +325,8 @@ class BlackBox:
                         status,                   # OK or CHECK
                         self.current_speed,       # mm/s
                         elapsed,                  # ms since mission start
+                        self.current_voltage,     # battery voltage in mv
+                        peak_load,                # peak motor load %
                     )
                     f.write(row)
 
@@ -299,14 +339,14 @@ class BlackBox:
             with open(self.CSV_FILE, "r") as f:
                 first = f.read(1)
                 if first:
-                    return   # file exists and has content — header already there
+                    return
         except OSError:
-            pass   # file doesn't exist yet — write header below
+            pass
 
         try:
             with open(self.CSV_FILE, "w") as f:
                 f.write("run,session,mission,move,target,error,"
-                        "abs_error,status,speed,elapsed_ms\n")
+                        "abs_error,status,speed,elapsed_ms,voltage_mv,peak_load\n")
         except OSError as e:
             print("BlackBox ERROR writing csv header: {}".format(e))
 
