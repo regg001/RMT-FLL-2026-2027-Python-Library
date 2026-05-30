@@ -16,7 +16,7 @@ class Robot:
 
         # --- CONSTANTS ---
         self.TURN_KP = 1.6
-        self.TURN_KD = 2.2      
+        self.TURN_KD = 3.0     
         self.TURN_FLOOR = 18    
         
         self.STR_KP = 9.0       
@@ -82,7 +82,7 @@ class Robot:
             
             correction = int((error * self.STR_KP) + (derivative * self.STR_KD))
             self.drive_base.drive(speed, correction)
-            
+             
             last_error = error
             wait(10)
             
@@ -93,6 +93,111 @@ class Robot:
     def move_arm_until_stalled(self, port, speed, torque_limit=40):
         m = Motor(port)
         m.run_until_stalled(speed, then=Stop.HOLD, duty_limit=torque_limit)
+     def turn_pivot(self, target_angle, speed=40, pivot_side="left", timeout=5000):
+        kp, ki, kd   = 4.5, 0.12, 6.0
+        last_error   = self.get_shortest_error(target_angle)
+        integral     = 0
+        stable_count = 0
+        peak_load    = 0
+        self.timer.reset()
+        while stable_count < 10:
+            if self.timer.time() > timeout:
+                print("WARNING: turn_pivot() timed out")
+                break
+            error = self.get_shortest_error(target_angle)
+            if abs(error) < 2.0:
+                integral = 0
+            else:
+                integral = max(min(integral + error, self.TURN_I_CLAMP), -self.TURN_I_CLAMP)
+            derivative = error - last_error
+            pwr = (error * kp) + (integral * ki) + (derivative * kd)
+            if abs(error) < 0.4:
+                pwr = 0
+            elif abs(pwr) < self.TURN_FLOOR + 5:
+                pwr = (self.TURN_FLOOR + 5) if pwr > 0 else -(self.TURN_FLOOR + 5)
+            pwr = int(max(min(pwr, speed), -speed))
+            if pivot_side.lower() == "left":
+                self.left_motor.stop()
+                self.right_motor.dc(-pwr)
+            else:
+                self.right_motor.stop()
+                self.left_motor.dc(pwr)
+            last_error   = error
+            peak_load    = max(peak_load, self._peak_load())
+            stable_count = stable_count + 1 if abs(error) < 0.6 else 0
+            wait(10)
+        self.left_motor.stop()
+        self.right_motor.stop()
+        wait(self.SETTLE_TIME)
+        self.log_result("Pivot Turn", target_angle, peak_load)
+
+    def turn_curve(self, target_angle, speed=150, curve_ratio=0.4, timeout=5000):
+        """
+        Arc turn using both wheels at different speeds.
+
+        The outer wheel runs at full speed. The inner wheel runs at
+        speed * curve_ratio, producing a smooth arc rather than a
+        point turn or pivot.
+
+        curve_ratio controls the arc shape:
+          0.0  →  inner wheel stopped    (same as pivot turn)
+          0.4  →  gentle arc             (recommended default)
+          0.7  →  wide, gradual sweep
+          1.0  →  straight (both wheels equal — no turn)
+
+        Turn direction is determined automatically from target_angle
+        relative to current heading. No need to specify left or right.
+
+        Args:
+            target_angle:  Gyro heading to reach (degrees)
+            speed:         Outer wheel speed (dc %)
+            curve_ratio:   Inner wheel speed as a fraction of outer (0.0–1.0)
+            timeout:       Safety cutoff in milliseconds
+
+        Usage:
+            bot.turn_curve(45)                       # gentle right arc to 45°
+            bot.turn_curve(-30, speed=120)            # gentle left arc to -30°
+            bot.turn_curve(90, curve_ratio=0.2)       # tighter arc
+        """
+        curve_ratio  = max(0.0, min(1.0, curve_ratio))
+        last_error   = self.get_shortest_error(target_angle)
+        stable_count = 0
+        peak_load    = 0
+        self.timer.reset()
+
+        while stable_count < 10:
+            if self.timer.time() > timeout:
+                print("WARNING: turn_curve() timed out")
+                break
+
+            error = self.get_shortest_error(target_angle)
+
+            if error > 0:
+                outer_pwr = speed
+                inner_pwr = int(speed * curve_ratio)
+            else:
+                outer_pwr = -speed
+                inner_pwr = -int(speed * curve_ratio)
+
+            if abs(inner_pwr) < self.TURN_FLOOR and inner_pwr != 0:
+                inner_pwr = self.TURN_FLOOR if inner_pwr > 0 else -self.TURN_FLOOR
+
+            if error > 0:
+                self.left_motor.dc(outer_pwr)
+                self.right_motor.dc(inner_pwr)
+            else:
+                self.right_motor.dc(-outer_pwr)
+                self.left_motor.dc(-inner_pwr)
+
+            last_error   = error
+            peak_load    = max(peak_load, self._peak_load())
+            stable_count = stable_count + 1 if abs(error) < 0.6 else 0
+            wait(10)
+
+        self.left_motor.stop()
+        self.right_motor.stop()
+        wait(self.SETTLE_TIME)
+        self.log_result("Curve Turn", target_angle, peak_load)
 
 
 
@@ -101,7 +206,4 @@ robot = Robot()
 robot.hub.imu.reset_heading(0)
 
 # Run test
-robot.turn_tank(-90)
-robot.gyro_straight(200, 300, accel=80)
-robot.turn_tank(90)
-robot.gyro_straight(200,100)
+robot.turn_curve(55,300,0.5)

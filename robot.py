@@ -38,7 +38,7 @@ class Robot:
     WHEEL_DIAMETER = 56
     AXLE_TRACK     = 114
 
-    def __init__(self, left_port=Port.B, right_port=Port.D):
+    def __init__(self, left_port=Port.E, right_port=Port.A):
         self.hub         = PrimeHub()
         self.left_motor  = Motor(left_port,  Direction.COUNTERCLOCKWISE)
         self.right_motor = Motor(right_port, Direction.CLOCKWISE)
@@ -86,7 +86,7 @@ class Robot:
         try:
             left_load  = abs(self.left_motor.load())
             right_load = abs(self.right_motor.load())
-            return max(left_load, right_load)
+            return max(left_load, right_load) / 8.0
         except:
             return 0
 
@@ -384,11 +384,9 @@ class Robot:
 
 def main():
     bot = Robot()
-
-    # Quick startup flash to confirm hub is alive
-    bot.hub.light.on(Color.BLUE)
-    wait(500)
-    bot.hub.light.off()
+    bot.straight(535,500)
+    bot.straight(115,300,325)
+    bot.print_diagnostic_report()
 
 
 if __name__ == "__main__":
