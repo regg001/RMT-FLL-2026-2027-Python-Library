@@ -1,20 +1,29 @@
 from pybricks.hubs import PrimeHub
 from pybricks.pupdevices import Motor
-from pybricks.parameters import Port, Direction, Color, Stop, Button
+from pybricks.parameters import Port, Direction, Color, Stop
 from pybricks.robotics import DriveBase
 from pybricks.tools import wait, StopWatch
 
 # ============================================================
-# Robot Class — FLL 2026-2027
+# Robot Class — FLL 2026-2027  (merged: structure from doc12 +
+# working telemetry/_peak_load from doc13. Kalman intentionally
+# kept separate / not included here.)
 # ============================================================
 
 class Robot:
     """Robot control wrapper for motion and PID heading corrections."""
 
-    # ── Floor and Timing ─────────────────────────────────────────────────────
+    # ── Wheel Geometry ───────────────────────────────────────────────────────
+    WHEEL_DIAMETER = 62.3
+    AXLE_TRACK     = 114
+
+    # ── Timing ───────────────────────────────────────────────────────────────
+    SETTLE_TIME = 500
+
+    # ── Floor Values ─────────────────────────────────────────────────────────
     TURN_FLOOR  = 18
     STR_FLOOR   = 25
-    SETTLE_TIME = 500
+    PIVOT_FLOOR = 30
 
     # ── Acceleration Ramp ────────────────────────────────────────────────────
     ACCEL_ZONE  = 300
@@ -29,17 +38,20 @@ class Robot:
     STR_KD = 12.0
     STR_KI = 0.05
 
-    # ── Turn PID ─────────────────────────────────────────────────────────────
+    # ── Turn PID (tank + pivot) ──────────────────────────────────────────────
     TURN_KP = 3.0
     TURN_KD = 8.0
     TURN_KI = 0.06
 
-    # ── Wheel Geometry ───────────────────────────────────────────────────────
-    WHEEL_DIAMETER = 56
-    AXLE_TRACK     = 114
+    # ── Curve Turn PID (independent — tune separately after mat testing) ──────
+    CURVE_KP = 3.0
+    CURVE_KD = 8.0
+    CURVE_KI = 0.06
 
     def __init__(self, left_port=Port.E, right_port=Port.A):
         self.hub         = PrimeHub()
+        self.timer       = StopWatch()
+        self.report_card = []
         self.left_motor  = Motor(left_port,  Direction.COUNTERCLOCKWISE)
         self.right_motor = Motor(right_port, Direction.CLOCKWISE)
         self.drive_base  = DriveBase(
@@ -48,40 +60,22 @@ class Robot:
             axle_track=self.AXLE_TRACK
         )
         self.drive_base.use_gyro(True)
-        self.timer       = StopWatch()
-        self.report_card = []
 
     # ────────────────────────────────────────────────────────────────────────
-    # GYRO HELPERS
+    # PRIVATE HELPERS
     # ────────────────────────────────────────────────────────────────────────
 
-    def get_yaw(self):
-        return self.hub.imu.heading()
-
-    def get_shortest_error(self, target_angle):
-        error = target_angle - self.get_yaw()
-        while error > 180:  error -= 360
-        while error < -180: error += 360
-        return error
-
-    def gyro_reset(self):
-        """Reset gyro heading to zero and clear the diagnostic report."""
-        self.hub.imu.reset_heading(0)
-        self.report_card = []
-        self.hub.light.on(Color.GREEN)
-        wait(300)
-        self.hub.light.off()
-
-    # ────────────────────────────────────────────────────────────────────────
-    # PEAK LOAD HELPER
-    # ────────────────────────────────────────────────────────────────────────
+    def _mm_to_degrees(self, distance_mm):
+        """Convert a linear distance in mm to wheel rotation in degrees."""
+        circumference = self.WHEEL_DIAMETER * 3.14159
+        return abs((distance_mm / circumference) * 360)
 
     def _peak_load(self):
         """
         Sample the highest motor load across both drive motors.
         Called each loop iteration inside movement methods to track
         the worst-case mechanical stress seen during a move.
-        Returns a percentage (0–100).
+        Returns a percentage (0-100).
         """
         try:
             left_load  = abs(self.left_motor.load())
@@ -89,6 +83,32 @@ class Robot:
             return max(left_load, right_load) / 8.0
         except:
             return 0
+
+    # ────────────────────────────────────────────────────────────────────────
+    # GYRO HELPERS
+    # ────────────────────────────────────────────────────────────────────────
+
+    def get_yaw(self):
+        """Return the robot's current heading in degrees from the IMU."""
+        return self.hub.imu.heading()
+
+    def get_shortest_error(self, target_angle):
+        """
+        Return the shortest angular distance between current heading and target.
+        Wraps error into -180 to +180 so the robot always takes the short way.
+        """
+        error = target_angle - self.get_yaw()
+        while error > 180:  error -= 360
+        while error < -180: error += 360
+        return error
+
+    def gyro_reset(self):
+        """Reset IMU heading to zero and clear the report card."""
+        self.hub.imu.reset_heading(0)
+        self.report_card = []
+        self.hub.light.on(Color.GREEN)
+        wait(300)
+        self.hub.light.off()
 
     # ────────────────────────────────────────────────────────────────────────
     # DIAGNOSTIC LOGGING
@@ -126,11 +146,9 @@ class Robot:
 
         W = 52  # report width
 
-        # ── Header ───────────────────────────────────────────────────────────
         print("\n" + "=" * W)
         print("    MISSION DIAGNOSTIC REPORT")
 
-        # Context line — only shown if at least one value was passed
         if any(v is not None for v in [run, mission, voltage, elapsed]):
             parts = []
             if run     is not None: parts.append("Run #{}".format(run))
@@ -141,7 +159,6 @@ class Robot:
 
         print("=" * W)
 
-        # ── Move Table ───────────────────────────────────────────────────────
         print("{:15} | {:7} | {:7} | {:9}".format(
             "MOVE", "TARGET", "ERROR", "PEAK LOAD"))
         print("-" * W)
@@ -159,7 +176,6 @@ class Robot:
                 worst_name = name
                 worst_tgt  = target
 
-        # ── Summary Stats ────────────────────────────────────────────────────
         print("=" * W)
         total_err = sum(abs(e) for _, _, e, _ in self.report_card)
         avg_err   = total_err / len(self.report_card)
@@ -171,12 +187,10 @@ class Robot:
         print("Net Bias (Systemic Drift): {:+.2f}°".format(bias))
         print("Average Peak Load:         {:.0f}%".format(avg_load))
 
-        # ── Worst Move Callout ───────────────────────────────────────────────
         print("-" * W)
-        print("Worst Move: {} → {}° | error {:+.2f}°".format(
+        print("Worst Move: {} -> {}° | error {:+.2f}°".format(
             worst_name, worst_tgt, worst_err if bias >= 0 else -worst_err))
 
-        # ── Warnings ─────────────────────────────────────────────────────────
         if abs(bias) > 3:
             direction = "RIGHT" if bias > 0 else "LEFT"
             print("WARNING: {} bias of {:.2f}° — check TURN_FLOOR".format(
@@ -197,17 +211,16 @@ class Robot:
     # ────────────────────────────────────────────────────────────────────────
 
     def straight(self, distance_mm, speed, target_heading=None, timeout=10000):
+        """Drive straight for a distance while maintaining heading."""
         wait(200)
         if target_heading is None:
             target_heading = self.get_yaw()
-        wheel_circumference = self.WHEEL_DIAMETER * 3.14159
-        target_deg  = abs((distance_mm / wheel_circumference) * 360)
+        target_deg = self._mm_to_degrees(distance_mm)
         self.left_motor.reset_angle(0)
         self.right_motor.reset_angle(0)
-        last_error  = 0
-        integral    = 0
-        direction   = 1 if distance_mm > 0 else -1
-        peak_load   = 0
+        last_error = 0
+        integral   = 0
+        peak_load  = 0
         self.timer.reset()
         while True:
             current_dist = (abs(self.left_motor.angle()) + abs(self.right_motor.angle())) / 2
@@ -225,8 +238,8 @@ class Robot:
             error      = self.get_shortest_error(target_heading)
             integral   = max(min(integral + error, self.STR_I_CLAMP), -self.STR_I_CLAMP)
             derivative = error - last_error
-            correction = ((self.STR_KP * error) + (self.STR_KI * integral) + (self.STR_KD * derivative))
-            self.drive_base.drive(direction * current_speed, correction)
+            correction = (self.STR_KP * error) + (self.STR_KI * integral) + (self.STR_KD * derivative)
+            self.drive_base.drive((1 if distance_mm > 0 else -1) * current_speed, correction)
             last_error = error
             peak_load  = max(peak_load, self._peak_load())
             wait(10)
@@ -250,7 +263,7 @@ class Robot:
             else:
                 integral = max(min(integral + error, self.TURN_I_CLAMP), -self.TURN_I_CLAMP)
             derivative = error - last_error
-            pwr = ((error * self.TURN_KP) + (integral * self.TURN_KI) + (derivative * self.TURN_KD))
+            pwr = (error * self.TURN_KP) + (integral * self.TURN_KI) + (derivative * self.TURN_KD)
             if abs(error) < 0.5:
                 pwr = 0
             elif abs(pwr) < self.TURN_FLOOR:
@@ -267,7 +280,7 @@ class Robot:
         wait(self.SETTLE_TIME)
         self.log_result("Tank Turn", target_angle, peak_load)
 
-    def turn_pivot(self, target_angle, speed=40, pivot_side="left", timeout=5000):
+    def turn_pivot(self, target_angle, speed=80, pivot_side="left", timeout=5000):
         kp, ki, kd   = 4.5, 0.12, 6.0
         last_error   = self.get_shortest_error(target_angle)
         integral     = 0
@@ -285,10 +298,10 @@ class Robot:
                 integral = max(min(integral + error, self.TURN_I_CLAMP), -self.TURN_I_CLAMP)
             derivative = error - last_error
             pwr = (error * kp) + (integral * ki) + (derivative * kd)
-            if abs(error) < 0.4:
+            if abs(error) < 0.8:
                 pwr = 0
-            elif abs(pwr) < self.TURN_FLOOR + 5:
-                pwr = (self.TURN_FLOOR + 5) if pwr > 0 else -(self.TURN_FLOOR + 5)
+            elif abs(pwr) < self.PIVOT_FLOOR:
+                pwr = self.PIVOT_FLOOR if pwr > 0 else -self.PIVOT_FLOOR
             pwr = int(max(min(pwr, speed), -speed))
             if pivot_side.lower() == "left":
                 self.left_motor.stop()
@@ -309,32 +322,22 @@ class Robot:
         """
         Arc turn using both wheels at different speeds.
 
-        The outer wheel runs at full speed. The inner wheel runs at
-        speed * curve_ratio, producing a smooth arc rather than a
-        point turn or pivot.
+        The outer wheel runs at full PID-controlled speed.
+        The inner wheel runs at speed * curve_ratio, producing a
+        smooth arc rather than a point turn or pivot.
 
         curve_ratio controls the arc shape:
-          0.0  →  inner wheel stopped    (same as pivot turn)
-          0.4  →  gentle arc             (recommended default)
-          0.7  →  wide, gradual sweep
-          1.0  →  straight (both wheels equal — no turn)
+          0.0  ->  inner wheel stopped    (same as pivot turn)
+          0.4  ->  gentle arc             (recommended default)
+          0.7  ->  wide, gradual sweep
+          1.0  ->  straight (no turn)
 
         Turn direction is determined automatically from target_angle
-        relative to current heading. No need to specify left or right.
-
-        Args:
-            target_angle:  Gyro heading to reach (degrees)
-            speed:         Outer wheel speed (dc %)
-            curve_ratio:   Inner wheel speed as a fraction of outer (0.0–1.0)
-            timeout:       Safety cutoff in milliseconds
-
-        Usage:
-            bot.turn_curve(45)                       # gentle right arc to 45°
-            bot.turn_curve(-30, speed=120)            # gentle left arc to -30°
-            bot.turn_curve(90, curve_ratio=0.2)       # tighter arc
+        relative to current heading.
         """
         curve_ratio  = max(0.0, min(1.0, curve_ratio))
         last_error   = self.get_shortest_error(target_angle)
+        integral     = 0
         stable_count = 0
         peak_load    = 0
         self.timer.reset()
@@ -346,21 +349,31 @@ class Robot:
 
             error = self.get_shortest_error(target_angle)
 
-            if error > 0:
-                outer_pwr = speed
-                inner_pwr = int(speed * curve_ratio)
+            if abs(error) < 2.0:
+                integral = 0
             else:
-                outer_pwr = -speed
-                inner_pwr = -int(speed * curve_ratio)
+                integral = max(min(integral + error, self.TURN_I_CLAMP), -self.TURN_I_CLAMP)
 
-            if abs(inner_pwr) < self.TURN_FLOOR and inner_pwr != 0:
-                inner_pwr = self.TURN_FLOOR if inner_pwr > 0 else -self.TURN_FLOOR
+            derivative = error - last_error
+            pwr = (error * self.CURVE_KP) + (integral * self.CURVE_KI) + (derivative * self.CURVE_KD)
+
+            if abs(error) < 0.5:
+                pwr = 0
+            elif abs(pwr) < self.TURN_FLOOR:
+                pwr = self.TURN_FLOOR if pwr > 0 else -self.TURN_FLOOR
+
+            pwr = int(max(min(pwr, speed), -speed))
+
+            # Inner wheel is a fixed ratio of outer wheel power
+            inner_pwr = int(pwr * curve_ratio)
 
             if error > 0:
-                self.left_motor.dc(outer_pwr)
+                # Turning right: left = outer, right = inner
+                self.left_motor.dc(pwr)
                 self.right_motor.dc(inner_pwr)
             else:
-                self.right_motor.dc(-outer_pwr)
+                # Turning left: right = outer, left = inner
+                self.right_motor.dc(-pwr)
                 self.left_motor.dc(-inner_pwr)
 
             last_error   = error
@@ -384,8 +397,11 @@ class Robot:
 
 def main():
     bot = Robot()
-    bot.straight(535,500)
-    bot.straight(115,300,325)
+    bot.gyro_reset()
+    bot.straight(500, 400)
+    bot.turn_tank(90)
+    bot.turn_pivot(0, pivot_side="right")
+    bot.turn_curve(45)
     bot.print_diagnostic_report()
 
 

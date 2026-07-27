@@ -16,10 +16,7 @@ box.start_run("Mission 1", speed=450)         # ← captures voltage snapshot he
 bot.gyro_reset()
 
 # ─── Your mission moves here ──────────────────────────────────────────────────
-bot.turn_pivot(180)
-bot.turn_tank(-90)
-bot.turn_tank(90)
-bot.turn_tank(0)
+bot.straight(1000,500)
 
 # ─────────────────────────────────────────────────────────────────────────────
 bot.print_diagnostic_report(

@@ -93,7 +93,7 @@ class Robot:
     def move_arm_until_stalled(self, port, speed, torque_limit=40):
         m = Motor(port)
         m.run_until_stalled(speed, then=Stop.HOLD, duty_limit=torque_limit)
-     def turn_pivot(self, target_angle, speed=40, pivot_side="left", timeout=5000):
+    def turn_pivot(self, target_angle, speed=40, pivot_side="left", timeout=5000):
         kp, ki, kd   = 4.5, 0.12, 6.0
         last_error   = self.get_shortest_error(target_angle)
         integral     = 0
