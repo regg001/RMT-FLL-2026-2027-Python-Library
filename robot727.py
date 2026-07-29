@@ -26,28 +26,28 @@ class Robot:
     AXLE_TRACK     = 114
 
     # ── Timing ───────────────────────────────────────────────────────────────
-    SETTLE_TIME = 100
+    SETTLE_TIME = 300
 
     # ── Floor Values ─────────────────────────────────────────────────────────
     TURN_FLOOR  = 19
     STR_FLOOR   = 25
-    PIVOT_FLOOR = 20
+    PIVOT_FLOOR = 28
     # ── Acceleration Ramp ────────────────────────────────────────────────────
     ACCEL_ZONE  = 0
-    DECEL_ZONE  = 0
+    DECEL_ZONE  = 100
 
     # ── Integral Clamps ──────────────────────────────────────────────────────
     STR_I_CLAMP  = 25
     TURN_I_CLAMP = 10
 
     # ── Straight PID ─────────────────────────────────────────────────────────
-    STR_KP = 5.0
-    STR_KD = 11.5
-    STR_KI = 0.05
+    STR_KP = 10
+    STR_KD = 30
+    STR_KI = 0.01
 
     # ── Turn PID (tank + pivot) ──────────────────────────────────────────────
     TURN_KP = 5
-    TURN_KD = 12
+    TURN_KD = 15
     TURN_KI = 0.01
 
     # ── Curve Turn PID (independent — tune separately after mat testing) ──────
@@ -288,7 +288,7 @@ class Robot:
         self.log_result("Tank Turn", target_angle, peak_load)
 
     def turn_pivot(self, target_angle, speed=80, pivot_side="left", timeout=5000):
-        kp, ki, kd   = 4.5, 0.12, 6.0
+        TURN_KP, TURN_KI, TURN_KD   = 5, 0.01, 20
         last_error   = self.get_shortest_error(target_angle)
         integral     = 0
         stable_count = 0
@@ -304,7 +304,7 @@ class Robot:
             else:
                 integral = max(min(integral + error, self.TURN_I_CLAMP), -self.TURN_I_CLAMP)
             derivative = error - last_error
-            pwr = (error * kp) + (integral * ki) + (derivative * kd) 
+            pwr = (error * TURN_KP) + (integral * TURN_KI) + (derivative * TURN_KD) 
             if abs(error) < 0.8:
                 pwr = 0
             elif abs(pwr) < self.PIVOT_FLOOR:
@@ -325,7 +325,7 @@ class Robot:
         wait(self.SETTLE_TIME)
         self.log_result("Pivot Turn", target_angle, peak_load)
 
-    def turn_curve(self, target_angle, speed=150, curve_ratio=0.4, timeout=5000):
+    def turn_curve(self, target_angle, speed=150, curve_ratio=0.4, timeout=1000):
         """
         Arc turn using both wheels at different speeds.
 
@@ -347,6 +347,8 @@ class Robot:
         "inner", which prevents the turn from settling (previously
         seen as timeouts + leftover error on small curve targets).
         """
+
+        TURN_FLOOR = 25
         curve_ratio  = max(0.0, min(1.0, curve_ratio))
         last_error   = self.get_shortest_error(target_angle)
         integral     = 0
@@ -414,12 +416,17 @@ class Robot:
 def main():
     bot = Robot()
     bot.gyro_reset()
-    bot.straight(500, 300, 0)
-    wait(50)
-    bot.turn_tank(-90)
-    wait(50)
-    bot.straight(750, 600, -90)
+    bot.straight(585, 300, 0)
+    bot.turn_curve(-45, 100, 0.2)
+    bot.straight(25,  100, -45)
+    bot.straight(-25, 100, -45)
+    bot.turn_pivot(-90, 40, "right")
+    bot.straight(-150, 300, -90)
+    bot.move_attachment(Port.B, 400, 400)
+    bot.straight(-50, 200, -90)
+    
     bot.print_diagnostic_report()
+
 
 
 if __name__ == "__main__":
