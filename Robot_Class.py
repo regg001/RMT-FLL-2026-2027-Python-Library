@@ -381,8 +381,8 @@ class Robot:
 
             if abs(error) < 0.5:
                 pwr = 0
-            elif abs(pwr) < self.TURN_FLOOR:
-                pwr = self.TURN_FLOOR if pwr > 0 else -self.TURN_FLOOR
+            elif abs(pwr) < TURN_FLOOR:
+                pwr = TURN_FLOOR if pwr > 0 else -TURN_FLOOR
 
             pwr = int(max(min(pwr, speed), -speed))
 
@@ -416,6 +416,7 @@ class Robot:
             print("WARNING: Port Not Defined")
 
     def move_attachment_stalled(self, port, speed, torque_limit=40):
-
-        #m = Motor(port)
-        Mothor(port).run_until_stalled(speed, then=Stop.HOLD, duty_limit=torque_limit)
+        if port in self.attachments:
+            self.attachments[port].run_until_stalled(speed, then=Stop.HOLD, duty_limit=torque_limit)
+        else:
+            print("WARNING: Port Not Defined")
