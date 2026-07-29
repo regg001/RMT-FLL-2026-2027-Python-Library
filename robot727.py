@@ -8,6 +8,14 @@ from pybricks.tools import wait, StopWatch
 # Robot Class — FLL 2026-2027  (merged: structure from doc12 +
 # working telemetry/_peak_load from doc13. Kalman intentionally
 # kept separate / not included here.)
+#
+# CHANGE LOG (this file):
+#   - turn_curve(): outer/inner wheel direction is now locked
+#     ONCE before the loop starts, instead of being re-checked
+#     every iteration. Re-checking caused an instant motor-role
+#     flip if the robot overshot and error crossed zero, which
+#     prevented small curve turns from settling (timeout +
+#     leftover error).
 # ============================================================
 
 class Robot:
@@ -18,16 +26,15 @@ class Robot:
     AXLE_TRACK     = 114
 
     # ── Timing ───────────────────────────────────────────────────────────────
-    SETTLE_TIME = 500
+    SETTLE_TIME = 100
 
     # ── Floor Values ─────────────────────────────────────────────────────────
-    TURN_FLOOR  = 18
+    TURN_FLOOR  = 19
     STR_FLOOR   = 25
-    PIVOT_FLOOR = 30
-
+    PIVOT_FLOOR = 20
     # ── Acceleration Ramp ────────────────────────────────────────────────────
-    ACCEL_ZONE  = 300
-    DECEL_ZONE  = 400
+    ACCEL_ZONE  = 0
+    DECEL_ZONE  = 0
 
     # ── Integral Clamps ──────────────────────────────────────────────────────
     STR_I_CLAMP  = 25
@@ -35,13 +42,13 @@ class Robot:
 
     # ── Straight PID ─────────────────────────────────────────────────────────
     STR_KP = 5.0
-    STR_KD = 12.0
+    STR_KD = 11.5
     STR_KI = 0.05
 
     # ── Turn PID (tank + pivot) ──────────────────────────────────────────────
-    TURN_KP = 3.0
-    TURN_KD = 8.0
-    TURN_KI = 0.06
+    TURN_KP = 5
+    TURN_KD = 12
+    TURN_KI = 0.01
 
     # ── Curve Turn PID (independent — tune separately after mat testing) ──────
     CURVE_KP = 3.0
@@ -247,7 +254,7 @@ class Robot:
         wait(self.SETTLE_TIME)
         self.log_result("Straight", target_heading, peak_load)
 
-    def turn_tank(self, target_angle, speed=100, timeout=5000):
+    def turn_tank(self, target_angle, speed=50, timeout=5000):
         last_error   = self.get_shortest_error(target_angle)
         integral     = 0
         stable_count = 0
@@ -297,7 +304,7 @@ class Robot:
             else:
                 integral = max(min(integral + error, self.TURN_I_CLAMP), -self.TURN_I_CLAMP)
             derivative = error - last_error
-            pwr = (error * kp) + (integral * ki) + (derivative * kd)
+            pwr = (error * kp) + (integral * ki) + (derivative * kd) 
             if abs(error) < 0.8:
                 pwr = 0
             elif abs(pwr) < self.PIVOT_FLOOR:
@@ -333,13 +340,22 @@ class Robot:
           1.0  ->  straight (no turn)
 
         Turn direction is determined automatically from target_angle
-        relative to current heading.
+        relative to current heading, and is locked in ONCE before the
+        loop starts. It is not re-checked every iteration — if the
+        robot overshoots and error crosses zero mid-turn, re-checking
+        the sign would instantly swap which wheel is "outer" vs
+        "inner", which prevents the turn from settling (previously
+        seen as timeouts + leftover error on small curve targets).
         """
         curve_ratio  = max(0.0, min(1.0, curve_ratio))
         last_error   = self.get_shortest_error(target_angle)
         integral     = 0
         stable_count = 0
         peak_load    = 0
+
+        # Decide turn direction ONCE, before the loop starts.
+        turning_right = last_error > 0
+
         self.timer.reset()
 
         while stable_count < 10:
@@ -367,7 +383,7 @@ class Robot:
             # Inner wheel is a fixed ratio of outer wheel power
             inner_pwr = int(pwr * curve_ratio)
 
-            if error > 0:
+            if turning_right:
                 # Turning right: left = outer, right = inner
                 self.left_motor.dc(pwr)
                 self.right_motor.dc(inner_pwr)
@@ -398,10 +414,11 @@ class Robot:
 def main():
     bot = Robot()
     bot.gyro_reset()
-    bot.straight(500, 400)
-    bot.turn_tank(90)
-    bot.turn_pivot(0, pivot_side="right")
-    bot.turn_curve(45)
+    bot.straight(500, 300, 0)
+    wait(50)
+    bot.turn_tank(-90)
+    wait(50)
+    bot.straight(750, 600, -90)
     bot.print_diagnostic_report()
 
 
