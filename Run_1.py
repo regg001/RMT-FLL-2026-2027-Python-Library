@@ -55,7 +55,7 @@ class Robot:
     CURVE_KD = 8.0
     CURVE_KI = 0.06
 
-    def __init__(self, left_port=Port.E, right_port=Port.A):
+    def __init__(self, left_port=Port.E, right_port=Port.A, attach_left=Port.F, attach_right=Port.B):
         self.hub         = PrimeHub()
         self.timer       = StopWatch()
         self.report_card = []
@@ -67,6 +67,10 @@ class Robot:
             axle_track=self.AXLE_TRACK
         )
         self.drive_base.use_gyro(True)
+        self.attachments= {
+            attach_left: Motor(attach_left), 
+            attach_right: Motor(attach_right)
+            }
 
     # ────────────────────────────────────────────────────────────────────────
     # PRIVATE HELPERS
@@ -254,7 +258,7 @@ class Robot:
         wait(self.SETTLE_TIME)
         self.log_result("Straight", target_heading, peak_load)
 
-    def turn_tank(self, target_angle, speed=50, timeout=5000):
+    def turn_tank(self, target_angle, speed=50, timeout=2000):
         last_error   = self.get_shortest_error(target_angle)
         integral     = 0
         stable_count = 0
@@ -405,25 +409,33 @@ class Robot:
         self.log_result("Curve Turn", target_angle, peak_load)
 
     def move_attachment(self, port, degrees, speed, then=Stop.HOLD, wait_done=True):
-        m = Motor(port)
-        m.run_angle(speed, degrees, then=then, wait=wait_done)
+        if port in self.attachments:
+            m= self.attachments[port]
+            m.run_angle(speed, degrees, then=then, wait=wait_done)
+        else:
+            print("WARNING: Port Not Defined")
 
     def move_attachment_stalled(self, port, speed, torque_limit=40):
-        m = Motor(port)
-        m.run_until_stalled(speed, then=Stop.HOLD, duty_limit=torque_limit)
+
+        #m = Motor(port)
+        Motor(port).run_until_stalled(speed, then=Stop.HOLD, duty_limit=torque_limit)
 
 
 def main():
     bot = Robot()
     bot.gyro_reset()
-    bot.straight(585, 300, 0)
-    bot.turn_curve(-45, 100, 0.2)
+    bot.straight(590, 300, 0)
+    bot.turn_curve(-45, 50, 0.2)
     bot.straight(25,  100, -45)
-    bot.straight(-25, 100, -45)
-    bot.turn_pivot(-90, 40, "right")
-    bot.straight(-150, 300, -90)
-    bot.move_attachment(Port.B, 400, 400)
-    bot.straight(-50, 200, -90)
+    bot.straight(-30, 100, None)
+    bot.turn_tank(-90)
+    bot.straight(-115, 300, -90)
+    bot.move_attachment(Port.B, 250, 400)
+    bot.straight(-105, 200, -90)
+    bot.move_attachment(Port.F, 4350, 2000)
+    bot.move_attachment(Port.B, -250, 400)
+    bot.turn_curve(180, 150, 0.4)
+    bot.straight(225, 1000, 170)
     
     bot.print_diagnostic_report()
 
