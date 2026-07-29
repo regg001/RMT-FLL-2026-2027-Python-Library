@@ -418,7 +418,7 @@ class Robot:
     def move_attachment_stalled(self, port, speed, torque_limit=40):
 
         #m = Motor(port)
-        Mothor(port).run_until_stalled(speed, then=Stop.HOLD, duty_limit=torque_limit)
+        Motor(port).run_until_stalled(speed, then=Stop.HOLD, duty_limit=torque_limit)
 
 
 def main():
