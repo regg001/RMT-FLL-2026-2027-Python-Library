@@ -408,10 +408,13 @@ class Robot:
         wait(self.SETTLE_TIME)
         self.log_result("Curve Turn", target_angle, peak_load)
 
-    def move_attachment(self, port, degrees, speed, then=Stop.HOLD, wait_done=True):
+    def move_attachment(self, port, degrees, speed, wait_done=True, sleep=0, then=Stop.HOLD):
         if port in self.attachments:
             m= self.attachments[port]
             m.run_angle(speed, degrees, then=then, wait=wait_done)
+            if wait_done == False:
+                wait(sleep)
+                
         else:
             print("WARNING: Port Not Defined")
 
