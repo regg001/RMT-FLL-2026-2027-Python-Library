@@ -1,43 +1,24 @@
-body{
-    margin: 0px;
+body {
+    margin: 0;
     font-family: 'EB Garamond', serif;
 }
-main{
+
+main {
     margin-left: 20px;
     margin-right: 20px;
 }
-h1{
+
+h1, h2 {
     text-align: center;
 }
-h2{
-    text-align: center;
-}
-.navbar ul{
+
+.navbar > ul {
     list-style-type: none;
     background-color: hsl(0, 0%, 25%);
-    padding: 0px;
-    margin: 0px;
-    overflow: hidden;
-}
-.navbar a{
-    color: white;
-    text-decoration: none;
-    padding: 15px;
-    display: block;
-    text-align: center;
-}
-.navbar a:hover{
-    background-color: hsl(0, 0%, 10%);
-}
-.navbar li{
-    float: left;
-}
-.navbar > ul {
-    list-style: none;
-    display: flex;
-    gap: 1rem;
     padding: 0;
     margin: 0;
+    overflow: visible;
+    display: flex;
 }
 
 .navbar > ul > li {
@@ -45,8 +26,15 @@ h2{
 }
 
 .navbar a {
+    color: white;
     text-decoration: none;
-    color: black;
+    padding: 15px;
+    display: block;
+    text-align: center;
+}
+
+.navbar a:hover {
+    background-color: hsl(0, 0%, 10%);
 }
 
 .dropdown-menu {
@@ -54,7 +42,7 @@ h2{
     position: absolute;
     top: 100%;
     left: 0;
-    background: white;
+    background: rgb(247, 243, 29);
     padding: 0.5rem;
     min-width: 180px;
     list-style: none;
