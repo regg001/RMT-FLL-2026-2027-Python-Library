@@ -120,7 +120,16 @@ class Robot:
         self.hub.light.on(Color.GREEN)
         wait(300)
         self.hub.light.off()
+        
+    def sleepms(self, ms):
+        wait(ms)
 
+    def voltage_report(self):
+        """Print the current battery voltage in volts."""
+        voltage_mV = self.hub.battery.voltage()
+        battery = (voltage_mV / 1000) * 100 / 9 
+        battery = round(battery, 0)
+        print(f"Battery voltage: {battery} %")
     # ────────────────────────────────────────────────────────────────────────
     # DIAGNOSTIC LOGGING
     # ────────────────────────────────────────────────────────────────────────
@@ -409,14 +418,17 @@ class Robot:
         self.log_result("Curve Turn", target_angle, peak_load)
 
     def move_attachment(self, port, degrees, speed, wait_done=True, sleep=0, then=Stop.HOLD):
+        self.timer.reset()
         if port in self.attachments:
             m= self.attachments[port]
             m.run_angle(speed, degrees, then=then, wait=wait_done)
             if wait_done == False:
                 wait(sleep)
-                
         else:
             print("WARNING: Port Not Defined")
+        if self.timer.time() > 5000:
+            print("WARNING: move_attachment() timed out")
+        
 
     def move_attachment_stalled(self, port, speed, torque_limit=40):
         if port in self.attachments:
