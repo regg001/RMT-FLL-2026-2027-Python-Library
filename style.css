@@ -1,6 +1,8 @@
 body {
     margin: 0;
     font-family: 'EB Garamond', serif;
+    background: white;
+    color: black;
 }
 
 main {
@@ -14,11 +16,12 @@ h1, h2 {
 
 .navbar > ul {
     list-style-type: none;
-    background-color: hsl(0, 0%, 25%);
+    background-color: hsl(0, 0%, 75%);
     padding: 0;
     margin: 0;
     overflow: visible;
     display: flex;
+    justify-content: center;
 }
 
 .navbar > ul > li {
@@ -26,7 +29,7 @@ h1, h2 {
 }
 
 .navbar a {
-    color: white;
+    color: hsl(0, 0%, 0%);
     text-decoration: none;
     padding: 15px;
     display: block;
@@ -34,7 +37,7 @@ h1, h2 {
 }
 
 .navbar a:hover {
-    background-color: hsl(0, 0%, 10%);
+    background-color: hsl(0, 0%, 50%);
 }
 
 .dropdown-menu {
@@ -42,7 +45,7 @@ h1, h2 {
     position: absolute;
     top: 100%;
     left: 0;
-    background: rgb(247, 243, 29);
+    background: hsl(0, 0%, 75%);
     padding: 0.5rem;
     min-width: 180px;
     list-style: none;
