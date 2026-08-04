@@ -1,0 +1,77 @@
+body {
+    margin: 0;
+    font-family: 'EB Garamond', serif;
+    background: rgb(192, 158, 8);
+    color: black;
+}
+
+main {
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
+h1, h2 {
+    text-align: center;
+}
+
+.overview {
+    color: black;
+    font-size: 20px;
+    background-color: hsl(51, 97%, 66%);
+    padding: 10px;
+}
+
+.navbar > ul {
+    list-style-type: none;
+    background-color: hsl(51, 91%, 45%);
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    display: flex;
+    justify-content: center;
+    max-width: 100%;
+    height: auto;
+    box-sizing: border-box;
+}
+
+.navbar > ul > li {
+    position: relative;
+}
+
+.navbar a {
+    color: hsl(0, 0%, 0%);
+    text-decoration: none;
+    padding: 15px;
+    display: block;
+    text-align: center;
+
+}
+
+.navbar a:hover {
+    background-color: hsl(0, 0%, 50%);
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: hsl(0, 0%, 75%);
+    padding: 0.5rem;
+    min-width: 180px;
+    list-style: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+.dropdown:hover > .dropdown-menu {
+    display: block;
+}
+
+.teamphoto {
+    max-width: 100%;
+    display:block;
+    margin-left: auto;
+    margin-right: auto;
+    height: auto;
+}
