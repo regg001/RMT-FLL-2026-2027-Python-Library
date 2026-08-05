@@ -3,6 +3,8 @@ Motor_test.py
 __pycache__/
 .vscode/
 
+index.html
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
