@@ -104,3 +104,19 @@ nav.UNEARTHED a:hover {
     font-size: 20px;
     padding: 10px;
 }
+
+.navbar-brand img {
+  max-height: 70px;
+  width: 100%;
+  height: auto;
+}
+.navbar-nav {
+  justify-content: center;
+}
+.navbar .nav-link {
+    font-size: 1.2rem;
+}
+
+.navbar .dropdown-item {
+    font-size: 1.1rem;
+}
