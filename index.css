@@ -92,10 +92,10 @@ nav.UNEARTHED a:hover {
 }
 
 .teamphoto {
-    max-width: auto;
+    width: min(90%, 600px);
+    max-height: 60vh;
     display:block;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 0 auto;
     height: auto;
 }
 
