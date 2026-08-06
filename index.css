@@ -1,64 +1,16 @@
-body {
+body.UNEARTHED {
     margin: 0;
-    font-family: 'Poppins', sans-serif;
-    background: white;
+    background: rgb(235, 203, 169);
     color: black;
+    font-family: 'Poppins', sans-serif;
 }
 
-body.UNEARTHED{
-    margin: 0;
-    font-family: 'Poppins', sans-serif;
-    background: rgb(235, 203, 169);
-}
 main {
     margin-left: 20px;
     margin-right: 20px;
 }
 
-h1, h2 {
-    text-align: center;
-}
-
-nav.UNEARTHED > ul {
-    list-style-type: none;
-    background-color: rgb(136, 97, 55);
-    padding: 0;
-    margin: 0;
-    overflow: visible;
-    display: flex;
-    justify-content: center;
-}
-
-nav.UNEARTHED > ul > li {
-    position: relative;
-}
-
-nav.UNEARTHED a {
-    color: hsl(0, 0%, 0%);
-    text-decoration: none;
-    padding: 15px;
-    display: block;
-    text-align: center;
-}
-
-nav.UNEARTHED a:hover {
-    background-color: hsl(0, 0%, 50%);
-}
-
-.navbar > ul {
-    list-style-type: none;
-    background-color: hsl(51, 91%, 45%);
-    padding: 0;
-    margin: 0;
-    overflow: visible;
-    display: flex;
-    justify-content: center;
-    max-width: 100%;
-    height: auto;
-    box-sizing: border-box;
-}
-
-.navbar > ul > li {
+.navbar>ul>li {
     position: relative;
 }
 
@@ -68,33 +20,33 @@ nav.UNEARTHED a:hover {
     padding: 15px;
     display: block;
     text-align: center;
-
 }
 
 .navbar a:hover {
-    background-color: hsl(0, 0%, 50%);
+    background-color: rgb(238, 191, 105);
 }
+
 .dropdown-menu {
     display: none;
     position: absolute;
     top: 100%;
     left: 0;
-    background: hsl(0, 0%, 75%);
+    background: hsl(39, 34%, 54%);
     padding: 0.5rem;
     min-width: 180px;
     list-style: none;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     z-index: 10;
 }
 
-.dropdown:hover > .dropdown-menu {
+.dropdown:hover>.dropdown-menu {
     display: block;
 }
 
 .teamphoto {
     width: min(90%, 600px);
     max-height: 60vh;
-    display:block;
+    display: block;
     margin: 0 auto;
     height: auto;
 }
@@ -106,42 +58,44 @@ nav.UNEARTHED a:hover {
 }
 
 .navbar-brand img {
-  max-height: 70px;
-  width: 100%;
-  height: auto;
+    max-height: 70px;
+    width: 100%;
+    height: auto;
 }
+
 .navbar-nav {
-  justify-content: center;
+    justify-content: center;
 }
+
 .navbar .nav-link {
-    font-size: 1.2rem;
+    font-size: 1.5rem;
 }
 
 .navbar .dropdown-item {
-    font-size: 1.1rem;
+    font-size: 1.4rem;
 }
 
-
 .carousel-inner {
-  max-width: 900px;    /* container width you want */
-  margin: 0 auto;
-  overflow: hidden;
+    max-width: 900px;
+    margin: 0 auto;
+    overflow: hidden;
 }
 
 .carousel-inner .carousel-item {
-  aspect-ratio: 16/9;   /* maintains aspect ratio */
-  width: 100%;     
-  min-height:0;   /* visible height for all slides (adjust as needed) */
+    aspect-ratio: 16/9;
+    width: 100%;
+    min-height: 0;
 }
 
 .carousel-inner .carousel-item .carousel-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;   /* preserves aspect ratio and fills the area */
-  display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
-/* optional: limit on very small screens */
 @media (max-width: 480px) {
-  .carousel-inner .carousel-item { height: 40vh; }
+    .carousel-inner .carousel-item {
+        height: 40vh;
+    }
 }
