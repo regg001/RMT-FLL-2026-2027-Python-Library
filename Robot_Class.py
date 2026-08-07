@@ -435,3 +435,16 @@ class Robot:
             self.attachments[port].run_until_stalled(speed, then=Stop.HOLD, duty_limit=torque_limit)
         else:
             print("WARNING: Port Not Defined")
+
+    def move_attachment_torque(self, port, speed, duty_limit=80, timeout=5000):
+        """High-torque movement with safety timeout."""
+        m = Motor(port)
+        m.run(speed)
+    
+        self.timer.reset()
+        while self.timer.time() < timeout:
+            if abs(m.speed()) < 5:  # Motor stalled or nearly stalled
+                break
+            wait(10)
+    
+        m.stop()
