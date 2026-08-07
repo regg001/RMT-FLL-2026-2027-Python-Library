@@ -1,20 +1,39 @@
-body.UNEARTHED {
+body {
     margin: 0;
-    background: rgb(235, 203, 169);
-    color: black;
     font-family: 'Poppins', sans-serif;
+    background: white;
+    color: black;
 }
 
+body.UNEARTHED{
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: rgb(235, 203, 169);
+}
 main {
     margin-left: 20px;
     margin-right: 20px;
 }
 
-.navbar>ul>li {
+h1, h2 {
+    text-align: center;
+}
+
+nav.UNEARTHED > ul {
+    list-style-type: none;
+    background-color: rgb(136, 97, 55);
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    display: flex;
+    justify-content: center;
+}
+
+nav.UNEARTHED > ul > li {
     position: relative;
 }
 
-.navbar a {
+nav.UNEARTHED a {
     color: hsl(0, 0%, 0%);
     text-decoration: none;
     padding: 15px;
@@ -22,31 +41,60 @@ main {
     text-align: center;
 }
 
-.navbar a:hover {
-    background-color: rgb(238, 191, 105);
+nav.UNEARTHED a:hover {
+    background-color: hsl(0, 0%, 50%);
 }
 
+.navbar > ul {
+    list-style-type: none;
+    background-color: hsl(51, 91%, 45%);
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    display: flex;
+    justify-content: center;
+    max-width: 100%;
+    height: auto;
+    box-sizing: border-box;
+}
+
+.navbar > ul > li {
+    position: relative;
+}
+
+/* .navbar a {
+    color: hsl(0, 0%, 0%);
+    text-decoration: none;
+    padding: 15px;
+    display: block;
+    text-align: center;
+
+} */
+
+.navbar a:hover {
+    background-color: hsl(0, 0%, 50%);
+}
 .dropdown-menu {
     display: none;
     position: absolute;
     top: 100%;
     left: 0;
-    background: hsl(39, 34%, 54%);
+    background: hsl(0, 0%, 75%);
     padding: 0.5rem;
     min-width: 180px;
     list-style: none;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     z-index: 10;
 }
 
-.dropdown:hover>.dropdown-menu {
+.dropdown:hover > .dropdown-menu {
     display: block;
 }
 
 .teamphoto {
     width: min(90%, 600px);
     max-height: 60vh;
-    display: block;
+    display:block;
     margin: 0 auto;
     height: auto;
 }
@@ -57,45 +105,146 @@ main {
     padding: 10px;
 }
 
-.navbar-brand img {
-    max-height: 70px;
-    width: 100%;
-    height: auto;
+.navbar-brand {
+    padding: 0;
+    margin-right: 0.5rem;
+    display: flex;
+    align-items: center;
 }
 
-.navbar-nav {
-    justify-content: center;
-}
-
-.navbar .nav-link {
-    font-size: 1.5rem;
-}
-
-.navbar .dropdown-item {
-    font-size: 1.4rem;
-}
-
-.carousel-inner {
-    max-width: 900px;
-    margin: 0 auto;
-    overflow: hidden;
-}
-
-.carousel-inner .carousel-item {
-    aspect-ratio: 16/9;
-    width: 100%;
-    min-height: 0;
-}
-
-.carousel-inner .carousel-item .carousel-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.navbar-brand img,
+.nav-logo {
+    height: 56px;
+    width: auto;
     display: block;
 }
 
-@media (max-width: 480px) {
-    .carousel-inner .carousel-item {
-        height: 40vh;
-    }
+.navbar-toggler {
+    padding: 0.25rem 0.4rem;
+    margin-left: 0.25rem;
+    width: 2.25rem;
+    height: 2.25rem;
 }
+
+
+.navbar {
+    padding-top: .2rem;
+    padding-bottom: .2rem;
+}
+
+.navbar-nav {
+  justify-content: center;
+  gap: 1rem;
+}
+.navbar .nav-link {
+    font-size: 1.2rem;
+}
+
+.navbar .dropdown-item {
+    font-size: 1.1rem;
+}
+
+.carousel-inner {
+  max-width: 900px;    /* container width you want */
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.carousel-inner .carousel-item {
+  aspect-ratio: 16/9;   /* maintains aspect ratio */
+  width: 100%;     
+  min-height:0;   /* visible height for all slides (adjust as needed) */
+}
+
+.carousel-inner .carousel-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;   /* preserves aspect ratio and fills the area */
+  display: block;
+}
+
+/* container that keeps image + arrows together and centers them */
+.carousel-container {
+  max-width: 900px;     /* same size you want the media to stay within */
+  margin: 0 auto;
+  position: relative;   /* allows absolutely positioned controls to sit over image */
+  overflow: hidden;
+}
+
+/* keep carousel-inner full width of the container (remove previous centering rules) */
+.carousel-inner {
+  width: 100%;
+  overflow: hidden;
+}
+
+.carousel-inner .carousel-item {
+  aspect-ratio: 16/9;
+  width: 100%;
+  min-height: 0;
+}
+
+.carousel-container .carousel-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* position controls so they stay inside the container and scale with it */
+.carousel-container .carousel-control-prev,
+.carousel-container .carousel-control-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3rem;
+  height: 3rem;
+  background: rgba(0,0,0,0); /* keep Bootstrap icons visible */
+  border: none;
+}
+
+/* darker circular controls for carousel */
+.carousel-container .carousel-control-prev,
+.carousel-container .carousel-control-next {
+  background: rgba(0,0,0,0.65);
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+.carousel-container .carousel-control-prev:hover,
+.carousel-container .carousel-control-next:hover {
+  background: rgba(0,0,0,0.85);
+}
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+  background-size: 1.25rem 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  filter: none;
+  color: #fff; /* forces SVG that uses currentColor to render white */
+}
+
+/* side placement */
+.carousel-container .carousel-control-prev { left: 0.5rem; }
+.carousel-container .carousel-control-next { right: 0.5rem; }
+
+/* optional: limit on very small screens */
+@media (max-width: 480px) {
+  .carousel-inner .carousel-item { height: 40vh; }
+  .navbar .nav-link,
+  .navbar .dropdown-item {
+    font-size: 0.9rem !important;
+  }
+}
+
+.navbar .navlink, 
+.navbar .dropdown-item {
+    font-size: 1rem !important;
+    line-height: 1.2;
+    white-space: nowrap;
+    padding:0.75rem 1rem;
+}
+
