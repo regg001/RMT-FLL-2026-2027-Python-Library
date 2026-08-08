@@ -45,7 +45,7 @@ class Robot:
     STR_KD = 30
     STR_KI = 0.01
 
-    # ── Turn PID (tank + pivot) ──────────────────────────────────────────────
+    # ── Turn PID (point + pivot) ──────────────────────────────────────────────
     TURN_KP = 5
     TURN_KD = 15
     TURN_KI = 0.01
@@ -267,7 +267,7 @@ class Robot:
         wait(self.SETTLE_TIME)
         self.log_result("Straight", target_heading, peak_load)
 
-    def turn_tank(self, target_angle, speed=50, timeout=2000):
+    def turn_point(self, target_angle, speed=50, timeout=2000):
         last_error   = self.get_shortest_error(target_angle)
         integral     = 0
         stable_count = 0
@@ -275,7 +275,7 @@ class Robot:
         self.timer.reset()
         while stable_count < 10:
             if self.timer.time() > timeout:
-                print("WARNING: turn_tank() timed out")
+                print("WARNING: turn_point() timed out")
                 break
             error = self.get_shortest_error(target_angle)
             if abs(error) < 2.0:
@@ -298,7 +298,7 @@ class Robot:
         self.left_motor.stop()
         self.right_motor.stop()
         wait(self.SETTLE_TIME)
-        self.log_result("Tank Turn", target_angle, peak_load)
+        self.log_result("Point Turn", target_angle, peak_load)
 
     def turn_pivot(self, target_angle, speed=80, pivot_side="left", timeout=5000):
         TURN_KP, TURN_KI, TURN_KD   = 5, 0.01, 20
