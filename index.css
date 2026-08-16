@@ -37,169 +37,173 @@ a {
   text-decoration: none;
 }
 
+h1 {
+  color: var(--primary-color);
+  text-align: center;
+}
+
 /*---------------------------------------------------------------------------
   REUSABLE COMPONENTS (UI Components Shared Across Pages)
 -----------------------------------------------------------------------------*/
 
 /*----- Navbar Formatting -----*/
-.custom-navbar-bg {
-  background-color: var(--navbar-bgcolor);
-}
+.navbar {
+  &.custom-navbar-bg {
+    background-color: var(--navbar-bgcolor);
+  }
 
-.navbar-nav {
-  justify-content: center;
-  gap: 1rem;
-  align-items: center;
-  white-space: nowrap;
-}
+  .navbar-nav {
+    justify-content: center;
+    gap: 1rem;
+    align-items: center;
+    white-space: nowrap;
+  }
 
-.dropdown:hover>.dropdown-menu {
-  display: block;
-}
+  .dropdown:hover>.dropdown-menu {
+    display: block;
+  }
 
-.dropdown-menu {
-  background-color: var(--navbar-bgcolor);
-}
+  .dropdown-menu {
+    background-color: var(--navbar-bgcolor);
+  }
 
-.dropdown-item {
-  justify-content: center !important;
-}
+  .dropdown-item {
+    justify-content: center !important;
+  }
 
-.navbar .nav-link:hover,
-.dropdown-menu .dropdown-item:hover,
-.navbar .navbar-brand:hover {
-  background-color: #b18b64;
-  color: var(--primary-color) !important;
-}
+  .navbar .nav-link:hover,
+  .dropdown-menu .dropdown-item:hover,
+  .navbar .navbar-brand:hover {
+    background-color: #b18b64;
+    color: var(--primary-color) !important;
+  }
 
-.nav-link {
-  color: var(--primary-color);
-  font-weight: bold;
-}
+  .nav-link {
+    color: var(--primary-color);
+    font-weight: bold;
+  }
 
-.logo-size {
-  width: 650px;
-  max-height: 60vh;
-  display: block;
-  margin: 0 auto;
-  height: auto;
-  align-items: center;
+  .logo-size {
+    width: 650px;
+    max-height: 60vh;
+    display: block;
+    margin: 0 auto;
+    height: auto;
+    align-items: center;
+  }
 }
 
 /*---------------------------------------------------------------------------
   Unearthed Team Profile (Specific to Unearthed Team Profile Page)
 -----------------------------------------------------------------------------*/
 
-.page-Unearthedtp {
+body.page-Unearthedtp {
 
-  /*----- Carosel Formatting -----*/
-  .carousel-inner {
-    max-width: 900px;
-    margin: 0 auto;
-    overflow: hidden;
-  }
-
-  .carousel-inner .carousel-item {
-    aspect-ratio: 16/9;
-    width: 100%;
-    min-height: 0;
-  }
-
-  .carousel-inner .carousel-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  .carousel-container {
+  /*----- Image Carosel Formatting -----*/
+  div.imgCarousel-Unearthedtp {
     max-width: 900px;
     margin: 0 auto;
     position: relative;
     overflow: hidden;
     border: 8px solid rgb(216, 155, 90);
     border-radius: 8px;
-  }
 
-  .carousel-inner {
-    width: 100%;
-    overflow: hidden;
-  }
-
-  .carousel-inner .carousel-item {
-    aspect-ratio: 16/9;
-    width: 100%;
-    min-height: 0;
-  }
-
-  .carousel-container .carousel-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  .carousel-container .carousel-control-prev,
-  .carousel-container .carousel-control-next {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3rem;
-    height: 3rem;
-    background: rgba(0, 0, 0, 0.9);
-    border: none;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.15s ease;
-  }
-
-  .carousel-container .carousel-control-prev:hover,
-  .carousel-container .carousel-control-next:hover {
-    background: rgba(0, 0, 0, 1);
-  }
-
-  .carousel-control-prev-icon,
-  .carousel-control-next-icon {
-    background-size: 1.25rem 1.25rem;
-    width: 1.25rem;
-    height: 1.25rem;
-    filter: none;
-    color: #fff;
-  }
-
-  .carousel-container .carousel-control-prev {
-    left: 0.5rem;
-  }
-
-  .carousel-container .carousel-control-next {
-    right: 0.5rem;
-  }
-
-  @media (max-width: 480px) {
-    .carousel-inner .carousel-item {
-      height: 40vh;
+    .carousel-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
-    .navbar .nav-link,
-    .navbar .dropdown-item {
-      font-size: 0.9rem !important;
+    .carousel-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      overflow: hidden;
+      width: 100%;
+
+      .carousel-item {
+        aspect-ratio: 16/9;
+        width: 100%;
+        min-height: 0;
+      }
+
+      .carousel-item {
+        aspect-ratio: 16/9;
+        width: 100%;
+        min-height: 0;
+      }
+    }
+
+    .carousel-control-prev,
+    .carousel-control-next {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3rem;
+      height: 3rem;
+      background: rgba(0, 0, 0, 0.9);
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease;
+    }
+
+    .carousel-control-prev:hover,
+    .carousel-control-next:hover {
+      background: rgba(0, 0, 0, 1);
+    }
+
+    .carousel-control-prev {
+      left: 0.5rem;
+    }
+
+    .carousel-control-next {
+      right: 0.5rem;
+    }
+
+
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+      background-size: 1.25rem 1.25rem;
+      width: 1.25rem;
+      height: 1.25rem;
+      filter: none;
+      color: #fff;
+    }
+
+
+    @media (max-width: 480px) {
+      .carousel-inner .carousel-item {
+        height: 40vh;
+      }
+
+      .navbar .nav-link,
+      .navbar .dropdown-item {
+        font-size: 0.9rem !important;
+      }
+    }
+
+    .carousel-caption h5,
+    .carousel-caption p {
+      font-family: var(--font-family) !important;
+      color: #ffffff;
+    }
+
+    .carousel-indicators {
+      bottom: 0.25rem;
+    }
+
+    .carousel-caption {
+      bottom: 0.5rem;
     }
   }
 
-  .carousel-caption h5,
-  .carousel-caption p {
-    font-family: var(--font-family) !important;
-    color: #ffffff;
-  }
-  .carousel-indicators {
-    bottom: 0.25rem;
+  section.aboutTeam {
+
   }
 
-  .carousel-caption {
-    bottom: 0.5rem;
-  }
 }
 
 /*----------------------------------------------------------------------------
