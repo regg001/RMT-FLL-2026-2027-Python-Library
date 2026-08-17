@@ -100,7 +100,7 @@ h1 {
 body.page-Unearthedtp {
 
   /*----- Image Carosel Formatting -----*/
-  div.imgCarousel-Unearthedtp {
+  div.imgCarousel {
     max-width: 900px;
     margin: 0 auto;
     position: relative;

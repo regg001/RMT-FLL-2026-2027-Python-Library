@@ -67,8 +67,8 @@
   </nav>
   <br>
   <!--Image Carousel-->
-  <div class="imgCarousel-Unearthedtp" class="my-4">
-    <div id="imgCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel">
+  <div class="imgCarousel my-4">
+    <div id="imgCarousel" class="carousel slide carousel-fade">
       <div class="carousel-indicators">
         <button type="button" data-bs-target="#imgCarousel" data-bs-slide-to="0" class="active" aria-current="true"
           aria-label="Slide 1"></button>
@@ -152,6 +152,67 @@
   <!--Person-Info Carousel-->
   <section class="aboutTeam">
     <h1><u>About Our Team</u></h1>
+    <div class="cardCarousel-Container my-4">
+      <div id="cardCarousel" class="carousel slide carousel-fade">
+        <div class="carousel-indicators bg-dark rounded-pill bg-opacity-50">
+          <button type="button" data-bs-target="#cardCarousel" data-bs-slide-to="0" class="active" aria-current="true"
+            aria-label="Slide 1"></button>
+          <button type="button" data-bs-target="#cardCarousel" data-bs-slide="1" aria-label="Slide 2"></button>
+          <button type="button" data-bs-target="#cardCarousel" data-bs-slide="2" aria-label="Slide 3"></button>
+          <button type="button" data-bs-target="#cardCarousel" data-bs-slide="3" aria-label="Slide 4"></button>
+          <button type="button" data-bs-target="#cardCarousel" data-bs-slide="4" aria-label="Slide 5"></button>
+          <button type="button" data-bs-target="#cardCarousel" data-bs-slide="5" aria-label="Slide 6"></button>
+          <button type="button" data-bs-target="#cardCarousel" data-bs-slide="6" aria-label="Slide 7"></button>
+          <button type="button" data-bs-target="#cardCarousel" data-bs-slide="7" aria-label="Slide 8"></button>
+        </div>
+        <div class="carousel-inner">
+          <div id="Profile 1" class="carousel-item active">
+            <div class="card mb-3" style="max-width: 540px;">
+              <div class="row g-0">
+                <div class="col-md-4">
+                  <img src="..." class="img-fluid rounded-start" alt="...">
+                </div>
+                <div class="col-md-8">
+                  <div class="card-body">
+                    <h5 class="card-title">Card Title</h5>
+                    <p class="card-text">Lorem, ipsum dolor sit amet consectetur adipisicing elit. Dolorem veniam quo
+                      inventore, facilis suscipit eos quos numquam nemo praesentium unde necessitatibus illo dicta,
+                      eveniet, repellendus ipsum sunt pariatur assumenda minima.</p>
+                    <p class="card-text"><small class="text-body-secondary">...</small></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="Profile 2" class="carousel-item">
+            <div class="card mb-3" style="max-width: 540px;">
+              <div class="row g-0">
+                <div class="col-md-4">
+                  <img src="..." class="img-fluid rounded-start" alt="...">
+                </div>
+                <div class="col-md-8">
+                  <div class="card-body">
+                    <h5 class="card-title">Card Title</h5>
+                    <p class="card-text">Lorem, ipsum dolor sit amet consectetur adipisicing elit. Dolorem veniam quo
+                      inventore, facilis suscipit eos quos numquam nemo praesentium unde necessitatibus illo dicta,
+                      eveniet, repellendus ipsum sunt pariatur assumenda minima.</p>
+                    <p class="card-text"><small class="text-body-secondary">...</small></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#cardCarousel" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#cardCarousel" data-bs-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Next</span>
+        </button>
+      </div>
+    </div>
   </section>
 
 </body>
