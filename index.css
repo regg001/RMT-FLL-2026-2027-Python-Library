@@ -220,6 +220,7 @@ body.page-Unearthedtp {
     .overview-Container {
       display: flex;
       gap: 50px;
+      justify-content: center;
     }
 
     .teamOverview{
