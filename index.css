@@ -202,9 +202,35 @@ body.page-Unearthedtp {
   }
 
   section.aboutTeam {
+
+    h1 {
+      font-size: 3rem;
+    }
+
+    h2 {
+      font-size: 2.3rem;
+      text-decoration: underline;
+    }
+
+    p {
+      font-size: 1.2rem;
+
+    }
+
+    .overview-Container {
+      display: flex;
+      gap: 50px;
+    }
+
+    .teamOverview{
+      margin: 3rem 2rem;
+      width: 600px;
+    }
+    
+    
     .cardCarousel-Container {
       width: var(--card-width);
-      margin: 0 auto;
+      margin: 0 2rem;
       position: relative;
     }
 
@@ -217,9 +243,22 @@ body.page-Unearthedtp {
         .card {
           max-width: var(--card-width);
           border: 8px solid rgb(216, 155, 90);
+          background-color: #ebcba9;
+
+          .card-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-decoration: underline;
+          }
+
+          .card-text {
+            font-size: 1.5rem;
+            font-style: italic;
+          }
         }
       }
     }
+
     .carousel-control-prev,
     .carousel-control-next {
       position: absolute;
@@ -234,11 +273,10 @@ body.page-Unearthedtp {
       align-items: center;
       justify-content: center;
       transition: background 0.15s ease;
-    }
 
-    .carousel-control-prev:hover,
-    .carousel-control-next:hover {
-      background: rgba(0, 0, 0, 0.7);
+      &:hover {
+        background: rgba(0, 0, 0, 0.7);
+      }
     }
 
     .carousel-control-prev {
