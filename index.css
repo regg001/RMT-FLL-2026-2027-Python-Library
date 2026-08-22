@@ -100,205 +100,225 @@ h1 {
 
 body.page-Unearthedtp {
 
-  /*----- Image Carosel Formatting -----*/
-  div.imgCarousel {
-    max-width: 900px;
-    margin: 0 auto;
-    position: relative;
-    overflow: hidden;
-    border: 8px solid rgb(216, 155, 90);
-    border-radius: 8px;
-
-    .carousel-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .carousel-inner {
-      max-width: 900px;
-      margin: 0 auto;
-      overflow: hidden;
-      width: 100%;
-
-      .carousel-item {
-        aspect-ratio: 16/9;
-        width: 100%;
-        min-height: 0;
-      }
-
-      .carousel-item {
-        aspect-ratio: 16/9;
-        width: 100%;
-        min-height: 0;
-      }
-    }
-
-    .carousel-control-prev,
-    .carousel-control-next {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 3rem;
-      height: 3rem;
-      background: rgba(0, 0, 0, 0.9);
-      border: none;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s ease;
-    }
-
-    .carousel-control-prev:hover,
-    .carousel-control-next:hover {
-      background: rgba(0, 0, 0, 1);
-    }
-
-    .carousel-control-prev {
-      left: 0.5rem;
-    }
-
-    .carousel-control-next {
-      right: 0.5rem;
-    }
-
-
-    .carousel-control-prev-icon,
-    .carousel-control-next-icon {
-      background-size: 1.25rem 1.25rem;
-      width: 1.25rem;
-      height: 1.25rem;
-      filter: none;
-      color: #fff;
-    }
-
-
-    @media (max-width: 480px) {
-      .carousel-inner .carousel-item {
-        height: 40vh;
-      }
-
-      .navbar .nav-link,
-      .navbar .dropdown-item {
-        font-size: 0.9rem !important;
-      }
-    }
-
-    .carousel-caption h5,
-    .carousel-caption p {
-      font-family: var(--font-family) !important;
-      color: #ffffff;
-    }
-
-    .carousel-indicators {
-      bottom: 0.25rem;
-    }
-
-    .carousel-caption {
-      bottom: 0.5rem;
-    }
+  h1 {
+    font-size: 3rem;
   }
+
+  h2 {
+        font-size: 2.3rem;
+        text-decoration: underline;
+      }
+
+      p {
+        font-size: 1.2rem;
+      }
 
   section.aboutTeam {
 
-    h1 {
-      font-size: 3rem;
-    }
-
-    h2 {
-      font-size: 2.3rem;
-      text-decoration: underline;
-    }
-
-    p {
-      font-size: 1.2rem;
-
-    }
-
+    /*----- Team Overview-----*/
     .overview-Container {
       display: flex;
       gap: 50px;
       justify-content: center;
       margin-left: 5rem;
       margin-right: 5rem;
-    }
 
-    .teamOverview{
-      margin: 3rem 2rem;
-      width: 600px;
-    }
-    
-    
-    .cardCarousel-Container {
-      width: var(--card-width);
-      margin: 0 2rem;
-      position: relative;
-    }
+      .teamOverview {
+        margin: 3rem 2rem;
+        width: 600px;
+      }
 
-    .carousel-indicators {
-      bottom: 0.7rem;
+
+      /*----- Card Carousel -----*/
+      .cardCarousel-Container {
+        transform: translateY(40px);
+        width: var(--card-width);
+        margin: 0 2rem;
+        position: relative;
+
+
+        .carousel-indicators {
+          bottom: 0.7rem;
+        }
+
+        .carousel-inner {
+          .carousel-item {
+            .card {
+              max-width: var(--card-width);
+              border: 8px solid rgb(216, 155, 90);
+              background-color: #ebcba9;
+
+              .card-title {
+                font-size: 1.8rem;
+                font-weight: bold;
+                text-decoration: underline;
+              }
+
+              .card-text {
+                font-size: 1.5rem;
+                font-style: italic;
+              }
+            }
+          }
+        }
+
+        .carousel-control-prev,
+        .carousel-control-next {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 2.5rem;
+          height: 2.5rem;
+          background: rgba(0, 0, 0, 0.6);
+          border: none;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.15s ease;
+
+          &:hover {
+            background: rgba(0, 0, 0, 0.7);
+          }
+        }
+
+        .carousel-control-prev {
+          left: 0.7rem;
+        }
+
+        .carousel-control-next {
+          right: 0.7rem;
+        }
+
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+          background-size: 1.25rem 1.25rem;
+          width: 1.25rem;
+          height: 1.25rem;
+          filter: none;
+          color: #fff;
+        }
+      }
+
     }
+  }
 
-    .carousel-inner {
-      .carousel-item {
-        .card {
-          max-width: var(--card-width);
-          border: 8px solid rgb(216, 155, 90);
-          background-color: #ebcba9;
+  section.sharingOutreach {
 
-          .card-title {
-            font-size: 1.8rem;
-            font-weight: bold;
-            text-decoration: underline;
+    /*----- Image Carosel Formatting -----*/
+    .Sharing-Container {
+      display: flex;
+      gap: 50px;
+      justify-content: center;
+      margin-left: 5rem;
+      margin-right: 5rem;
+
+      .Sharing-Description {
+        margin: 3rem 2rem;
+        width: 600px;
+      }
+      .imgCarousel {
+        max-width: 700px;
+        margin: 0 auto;
+        position: relative;
+        overflow: hidden;
+        border: 8px solid rgb(216, 155, 90);
+        border-radius: 8px;
+
+        .carousel-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .carousel-inner {
+          max-width: 900px;
+          margin: 0 auto;
+          overflow: hidden;
+          width: 100%;
+
+          .carousel-item {
+            aspect-ratio: 16/9;
+            width: 100%;
+            min-height: 0;
           }
 
-          .card-text {
-            font-size: 1.5rem;
-            font-style: italic;
+          .carousel-item {
+            aspect-ratio: 16/9;
+            width: 100%;
+            min-height: 0;
           }
+        }
+
+        .carousel-control-prev,
+        .carousel-control-next {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 3rem;
+          height: 3rem;
+          background: rgba(0, 0, 0, 0.9);
+          border: none;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.15s ease;
+        }
+
+        .carousel-control-prev:hover,
+        .carousel-control-next:hover {
+          background: rgba(0, 0, 0, 1);
+        }
+
+        .carousel-control-prev {
+          left: 0.5rem;
+        }
+
+        .carousel-control-next {
+          right: 0.5rem;
+        }
+
+
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+          background-size: 1.25rem 1.25rem;
+          width: 1.25rem;
+          height: 1.25rem;
+          filter: none;
+          color: #fff;
+        }
+
+
+        @media (max-width: 480px) {
+          .carousel-inner .carousel-item {
+            height: 40vh;
+          }
+
+          .navbar .nav-link,
+          .navbar .dropdown-item {
+            font-size: 0.9rem !important;
+          }
+        }
+
+        .carousel-caption h5,
+        .carousel-caption p {
+          font-family: var(--font-family) !important;
+          color: #ffffff;
+        }
+
+        .carousel-indicators {
+          bottom: 0.25rem;
+        }
+
+        .carousel-caption {
+          bottom: 0.5rem;
         }
       }
     }
-
-    .carousel-control-prev,
-    .carousel-control-next {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 2.5rem;
-      height: 2.5rem;
-      background: rgba(0, 0, 0, 0.6);
-      border: none;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s ease;
-
-      &:hover {
-        background: rgba(0, 0, 0, 0.7);
-      }
-    }
-
-    .carousel-control-prev {
-      left: 0.7rem;
-    }
-
-    .carousel-control-next {
-      right: 0.7rem;
-    }
-
-    .carousel-control-prev-icon,
-    .carousel-control-next-icon {
-      background-size: 1.25rem 1.25rem;
-      width: 1.25rem;
-      height: 1.25rem;
-      filter: none;
-      color: #fff;
-    }
   }
+
 
 }
 
