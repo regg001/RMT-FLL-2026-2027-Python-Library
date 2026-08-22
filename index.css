@@ -221,6 +221,8 @@ body.page-Unearthedtp {
       display: flex;
       gap: 50px;
       justify-content: center;
+      margin-left: 5rem;
+      margin-right: 5rem;
     }
 
     .teamOverview{
