@@ -141,7 +141,7 @@ body.page-Unearthedtp {
         background-color: rgba(255, 255, 255, 0.7);
 
         .Overlay-Content {
-          width: 50%;
+          width: 40%;
           margin-left: 5%;
           display: flex;
           flex-direction: column;
@@ -150,7 +150,7 @@ body.page-Unearthedtp {
           text-align: center;
 
           h1 {
-            font-size: 5rem;
+            font-size: 4rem;
           }
 
           p {
