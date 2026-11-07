@@ -1,21 +1,39 @@
 from pybricks.hubs import PrimeHub
 from pybricks.pupdevices import Motor
-from pybricks.parameters import Port, Direction, Color, Stop
+from pybricks.parameters import Color, Direction, Port, Stop
 from pybricks.robotics import DriveBase
 from pybricks.tools import wait, StopWatch
 
+
 # ============================================================
-# Robot Class — FLL 2026-2027  (merged: structure from doc12 +
-# working telemetry/_peak_load from doc13. Kalman intentionally
-# kept separate / not included here.)
+# Robot Class  FLL 2026-2027
 #
 # CHANGE LOG (this file):
-#   - turn_curve(): outer/inner wheel direction is now locked
-#     ONCE before the loop starts, instead of being re-checked
-#     every iteration. Re-checking caused an instant motor-role
-#     flip if the robot overshot and error crossed zero, which
-#     prevented small curve turns from settling (timeout +
-#     leftover error).
+#   Merged from the two working copies. The newer copy is the
+#     base; nothing from the older copy's turn logic or gains
+#     was carried over (they were tuned for the old floor).
+#   __init__ accepts optional attach_ports. Each port given is
+#     registered with add_attachment(); empty ports are never
+#     touched, so a missing motor can't crash startup.
+#   turn_point is kept as an alias for turn_tank so older
+#     mission files still run.
+#   Worst Move in the diagnostic report now prints that move's
+#     own signed error (was using the overall bias sign).
+#   turn_curve default timeout raised to 2000 ms.
+#   Unused sensor imports and the test main() removed.
+#
+#   Carried from the newer copy:
+#     Speed capped at 100 in all turns (dc() is a percent).
+#     Floor fades from full to MIN as error shrinks, and only
+#       applies when power pushes toward the target.
+#     Derivative is low-pass filtered (D_FILTER).
+#     Deadband and settle band share one value (TURN_BAND).
+#     Turns end with brake(); straight() ends with hold().
+#     turn_pivot uses class constants instead of local gains.
+#
+# report_card entries are 4-tuples:
+#     (move_name, target_angle, final_error, peak_load)
+# blackbox.py must unpack 4 values to read them.
 # ============================================================
 
 class Robot:
@@ -26,39 +44,62 @@ class Robot:
     AXLE_TRACK     = 114
 
     # ── Timing ───────────────────────────────────────────────────────────────
-    SETTLE_TIME = 500
+    SETTLE_TIME = 300
 
     # ── Floor Values ─────────────────────────────────────────────────────────
-    TURN_FLOOR  = 19
-    STR_FLOOR   = 25
-    PIVOT_FLOOR = 20
+    STR_FLOOR = 25
+
+    TURN_FLOOR       = 19   # tank floor far from target
+    TURN_MIN_FLOOR   = 14   # tank floor at target (lowest dc that still rotates)
+    PIVOT_FLOOR      = 28
+    PIVOT_MIN_FLOOR  = 15
+    CURVE_FLOOR      = 25
+    CURVE_MIN_FLOOR  = 12
+    FLOOR_ZONE       = 4    # degrees over which floor fades from full to MIN
+
+    TURN_BAND = 0.7         # on-target band (deadband + settle check)
+    D_FILTER  = 0.6         # derivative smoothing: higher = smoother, slower
+
     # ── Acceleration Ramp ────────────────────────────────────────────────────
-    ACCEL_ZONE  = 300
-    DECEL_ZONE  = 400
+    ACCEL_ZONE      = 100   # wheel degrees to ramp up over
+    DECEL_ZONE      = 250   # wheel degrees (~136 mm) to slow down before the end
+    STR_STOP_OFFSET = 2     # mm to stop early; set to the average overshoot you measure
 
     # ── Integral Clamps ──────────────────────────────────────────────────────
     STR_I_CLAMP  = 25
     TURN_I_CLAMP = 10
 
     # ── Straight PID ─────────────────────────────────────────────────────────
-    STR_KP = 5.0
-    STR_KD = 12.0
-    STR_KI = 0.05
+    # Output is a turn rate in deg/s fed to drive_base.drive().
+    STR_KP = 8
+    STR_KD = 15
+    STR_KI = 0.3
 
-    # ── Turn PID (tank + pivot) ──────────────────────────────────────────────
-    TURN_KP = 3.0
-    TURN_KD = 8.0
-    TURN_KI = 0.06
+    # ── Turn PID (tank) ──────────────────────────────────────────────────────
+    TURN_KP = 2.5
+    TURN_KD = 10
+    TURN_KI = 0.01
 
-    # ── Curve Turn PID (independent — tune separately after mat testing) ──────
+    # ── Pivot PID ────────────────────────────────────────────────────────────
+    PIVOT_KP = 3.0
+    PIVOT_KD = 12
+    PIVOT_KI = 0.01
+
+    # ── Curve Turn PID ───────────────────────────────────────────────────────
     CURVE_KP = 3.0
     CURVE_KD = 8.0
     CURVE_KI = 0.06
 
-    def __init__(self, left_port=Port.E, right_port=Port.A):
+    def __init__(self, left_port=Port.E, right_port=Port.A, attach_ports=()):
+        """
+        attach_ports: optional list of attachment ports, e.g. (Port.F, Port.B).
+        Each is registered with CLOCKWISE direction. For a reversed motor,
+        leave it out here and call add_attachment(port, Direction.COUNTERCLOCKWISE).
+        """
         self.hub         = PrimeHub()
         self.timer       = StopWatch()
         self.report_card = []
+        self.attachments = {}
         self.left_motor  = Motor(left_port,  Direction.COUNTERCLOCKWISE)
         self.right_motor = Motor(right_port, Direction.CLOCKWISE)
         self.drive_base  = DriveBase(
@@ -67,6 +108,12 @@ class Robot:
             axle_track=self.AXLE_TRACK
         )
         self.drive_base.use_gyro(True)
+        for port in attach_ports:
+            self.add_attachment(port)
+
+    def add_attachment(self, port, direction=Direction.CLOCKWISE):
+        """Register an attachment motor so move_attachment() can use it."""
+        self.attachments[port] = Motor(port, direction)
 
     # ────────────────────────────────────────────────────────────────────────
     # PRIVATE HELPERS
@@ -80,8 +127,6 @@ class Robot:
     def _peak_load(self):
         """
         Sample the highest motor load across both drive motors.
-        Called each loop iteration inside movement methods to track
-        the worst-case mechanical stress seen during a move.
         Returns a percentage (0-100).
         """
         try:
@@ -90,6 +135,21 @@ class Robot:
             return max(left_load, right_load) / 8.0
         except:
             return 0
+
+    def _apply_floor(self, pwr, error, full_floor, min_floor):
+        """
+        Zero power inside TURN_BAND. Otherwise enforce a minimum power that
+        fades from full_floor down to min_floor as error shrinks inside
+        FLOOR_ZONE. Floor only applies when pwr pushes toward the target,
+        so the D term can still brake freely.
+        """
+        if abs(error) < self.TURN_BAND:
+            return 0
+        fade  = min(1, abs(error) / self.FLOOR_ZONE)
+        floor = min_floor + (full_floor - min_floor) * fade
+        if abs(pwr) < floor and pwr * error > 0:
+            return floor if pwr > 0 else -floor
+        return pwr
 
     # ────────────────────────────────────────────────────────────────────────
     # GYRO HELPERS
@@ -117,6 +177,16 @@ class Robot:
         wait(300)
         self.hub.light.off()
 
+    def sleepms(self, ms):
+        wait(ms)
+
+    def voltage_report(self):
+        """Print the current battery level as a percent of 9V."""
+        voltage_mV = self.hub.battery.voltage()
+        battery = (voltage_mV / 1000) * 100 / 9
+        battery = round(battery, 0)
+        print(f"Battery voltage: {battery} %")
+
     # ────────────────────────────────────────────────────────────────────────
     # DIAGNOSTIC LOGGING
     # ────────────────────────────────────────────────────────────────────────
@@ -127,8 +197,6 @@ class Robot:
 
         report_card entries are 4-tuples:
             (move_name, target_angle, final_error, peak_load)
-
-        peak_load is the highest motor load % seen during the move.
         """
         final_err = self.get_shortest_error(target)
         self.report_card.append((move_name, round(float(target), 2), final_err, peak_load))
@@ -136,9 +204,6 @@ class Robot:
     def print_diagnostic_report(self, run=None, mission=None, voltage=None, elapsed=None):
         """
         Print a formatted post-run report to the terminal.
-
-        Optional args pull in context from BlackBox for a richer header.
-        Call with no args for a basic report, or pass BlackBox values:
 
             bot.print_diagnostic_report(
                 run     = box.run_count,
@@ -170,7 +235,7 @@ class Robot:
             "MOVE", "TARGET", "ERROR", "PEAK LOAD"))
         print("-" * W)
 
-        worst_err  = 0
+        worst_err  = 0   # signed error of the worst move
         worst_name = ""
         worst_tgt  = 0
 
@@ -178,8 +243,8 @@ class Robot:
             status = "OK" if abs(err) < 0.8 else "CHECK"
             print("{:15} | {:7} | {:+6.2f}° | {:7.0f}%  [{}]".format(
                 name, target, err, peak_load, status))
-            if abs(err) > worst_err:
-                worst_err  = abs(err)
+            if abs(err) > abs(worst_err):
+                worst_err  = err
                 worst_name = name
                 worst_tgt  = target
 
@@ -196,7 +261,7 @@ class Robot:
 
         print("-" * W)
         print("Worst Move: {} -> {}° | error {:+.2f}°".format(
-            worst_name, worst_tgt, worst_err if bias >= 0 else -worst_err))
+            worst_name, worst_tgt, worst_err))
 
         if abs(bias) > 3:
             direction = "RIGHT" if bias > 0 else "LEFT"
@@ -218,16 +283,25 @@ class Robot:
     # ────────────────────────────────────────────────────────────────────────
 
     def straight(self, distance_mm, speed, target_heading=None, timeout=10000):
-        """Drive straight for a distance while maintaining heading."""
-        wait(200)
+        """
+        Drive straight for a distance while holding an absolute heading.
+
+        Pass target_heading whenever you know the intended heading
+        (e.g. the angle of the turn you just made). If left as None it
+        holds whatever heading the robot is at now, which carries any
+        leftover turn error into the drive.
+        """
         if target_heading is None:
             target_heading = self.get_yaw()
-        target_deg = self._mm_to_degrees(distance_mm)
+        direction  = 1 if distance_mm > 0 else -1
+        target_deg = self._mm_to_degrees(max(abs(distance_mm) - self.STR_STOP_OFFSET, 0))
         self.left_motor.reset_angle(0)
         self.right_motor.reset_angle(0)
-        last_error = 0
+        last_error = self.get_shortest_error(target_heading)
         integral   = 0
+        d_filt     = 0
         peak_load  = 0
+        max_err    = 0
         self.timer.reset()
         while True:
             current_dist = (abs(self.left_motor.angle()) + abs(self.right_motor.angle())) / 2
@@ -242,21 +316,36 @@ class Robot:
                 current_speed = max(self.STR_FLOOR, (dist_remaining / self.DECEL_ZONE) * speed)
             else:
                 current_speed = speed
-            error      = self.get_shortest_error(target_heading)
-            integral   = max(min(integral + error, self.STR_I_CLAMP), -self.STR_I_CLAMP)
-            derivative = error - last_error
-            correction = (self.STR_KP * error) + (self.STR_KI * integral) + (self.STR_KD * derivative)
-            self.drive_base.drive((1 if distance_mm > 0 else -1) * current_speed, correction)
+            error    = self.get_shortest_error(target_heading)
+            integral = max(min(integral + error, self.STR_I_CLAMP), -self.STR_I_CLAMP)
+            d_filt   = self.D_FILTER * d_filt + (1 - self.D_FILTER) * (error - last_error)
+            correction = (self.STR_KP * error) + (self.STR_KI * integral) + (self.STR_KD * d_filt)
+            self.drive_base.drive(direction * current_speed, correction)
             last_error = error
             peak_load  = max(peak_load, self._peak_load())
+            if abs(error) > abs(max_err): max_err = error
             wait(10)
+        err_at_stop = self.get_shortest_error(target_heading)
         self.drive_base.stop()
+        self.left_motor.hold()
+        self.right_motor.hold()
         wait(self.SETTLE_TIME)
+        err_settled = self.get_shortest_error(target_heading)
+        print("Straight heading: max during drive {:+.2f}° | at stop {:+.2f}° | after settle {:+.2f}°".format(
+            max_err, err_at_stop, err_settled))
+
+        traveled_deg = (abs(self.left_motor.angle()) + abs(self.right_motor.angle())) / 2
+        traveled_mm  = traveled_deg * self.WHEEL_DIAMETER * 3.14159 / 360
+        print("Straight: target {} mm | traveled {:.1f} mm | overshoot {:+.1f} mm".format(
+            abs(distance_mm), traveled_mm, traveled_mm - abs(distance_mm)))
         self.log_result("Straight", target_heading, peak_load)
 
-    def turn_tank(self, target_angle, speed=100, timeout=5000):
+    def turn_tank(self, target_angle, speed=60, timeout=3000):
+        """Point turn: both wheels drive in opposite directions."""
+        speed        = min(abs(speed), 100)
         last_error   = self.get_shortest_error(target_angle)
         integral     = 0
+        d_filt       = 0
         stable_count = 0
         peak_load    = 0
         self.timer.reset()
@@ -265,32 +354,39 @@ class Robot:
                 print("WARNING: turn_tank() timed out")
                 break
             error = self.get_shortest_error(target_angle)
+
             if abs(error) < 2.0:
                 integral = 0
             else:
                 integral = max(min(integral + error, self.TURN_I_CLAMP), -self.TURN_I_CLAMP)
-            derivative = error - last_error
-            pwr = (error * self.TURN_KP) + (integral * self.TURN_KI) + (derivative * self.TURN_KD)
-            if abs(error) < 0.5:
-                pwr = 0
-            elif abs(pwr) < self.TURN_FLOOR:
-                pwr = self.TURN_FLOOR if pwr > 0 else -self.TURN_FLOOR
+
+            d_filt = self.D_FILTER * d_filt + (1 - self.D_FILTER) * (error - last_error)
+            pwr = error * self.TURN_KP + integral * self.TURN_KI + d_filt * self.TURN_KD
+            pwr = self._apply_floor(pwr, error, self.TURN_FLOOR, self.TURN_MIN_FLOOR)
             pwr = int(max(min(pwr, speed), -speed))
+
             self.left_motor.dc(pwr)
             self.right_motor.dc(-pwr)
+
             last_error   = error
             peak_load    = max(peak_load, self._peak_load())
-            stable_count = stable_count + 1 if abs(error) < 0.6 else 0
+            stable_count = stable_count + 1 if abs(error) < self.TURN_BAND else 0
             wait(10)
-        self.left_motor.stop()
-        self.right_motor.stop()
+
+        self.left_motor.brake()
+        self.right_motor.brake()
         wait(self.SETTLE_TIME)
         self.log_result("Tank Turn", target_angle, peak_load)
 
+    # Older mission files call turn_point(); same method.
+    turn_point = turn_tank
+
     def turn_pivot(self, target_angle, speed=80, pivot_side="left", timeout=5000):
-        kp, ki, kd   = 4.5, 0.12, 6.0
+        """Pivot turn: one wheel holds still, the other drives."""
+        speed        = min(abs(speed), 100)
         last_error   = self.get_shortest_error(target_angle)
         integral     = 0
+        d_filt       = 0
         stable_count = 0
         peak_load    = 0
         self.timer.reset()
@@ -299,39 +395,40 @@ class Robot:
                 print("WARNING: turn_pivot() timed out")
                 break
             error = self.get_shortest_error(target_angle)
+
             if abs(error) < 2.0:
                 integral = 0
             else:
                 integral = max(min(integral + error, self.TURN_I_CLAMP), -self.TURN_I_CLAMP)
-            derivative = error - last_error
-            pwr = (error * kp) + (integral * ki) + (derivative * kd) 
-            if abs(error) < 0.8:
-                pwr = 0
-            elif abs(pwr) < self.PIVOT_FLOOR:
-                pwr = self.PIVOT_FLOOR if pwr > 0 else -self.PIVOT_FLOOR
+
+            d_filt = self.D_FILTER * d_filt + (1 - self.D_FILTER) * (error - last_error)
+            pwr = error * self.PIVOT_KP + integral * self.PIVOT_KI + d_filt * self.PIVOT_KD
+            pwr = self._apply_floor(pwr, error, self.PIVOT_FLOOR, self.PIVOT_MIN_FLOOR)
             pwr = int(max(min(pwr, speed), -speed))
+
             if pivot_side.lower() == "left":
-                self.left_motor.stop()
+                self.left_motor.brake()
                 self.right_motor.dc(-pwr)
             else:
-                self.right_motor.stop()
+                self.right_motor.brake()
                 self.left_motor.dc(pwr)
+
             last_error   = error
             peak_load    = max(peak_load, self._peak_load())
-            stable_count = stable_count + 1 if abs(error) < 0.6 else 0
+            stable_count = stable_count + 1 if abs(error) < self.TURN_BAND else 0
             wait(10)
-        self.left_motor.stop()
-        self.right_motor.stop()
+
+        self.left_motor.brake()
+        self.right_motor.brake()
         wait(self.SETTLE_TIME)
         self.log_result("Pivot Turn", target_angle, peak_load)
 
-    def turn_curve(self, target_angle, speed=150, curve_ratio=0.4, timeout=5000):
+    def turn_curve(self, target_angle, speed=60, curve_ratio=0.4, timeout=2000):
         """
         Arc turn using both wheels at different speeds.
 
         The outer wheel runs at full PID-controlled speed.
-        The inner wheel runs at speed * curve_ratio, producing a
-        smooth arc rather than a point turn or pivot.
+        The inner wheel runs at speed * curve_ratio.
 
         curve_ratio controls the arc shape:
           0.0  ->  inner wheel stopped    (same as pivot turn)
@@ -339,25 +436,20 @@ class Robot:
           0.7  ->  wide, gradual sweep
           1.0  ->  straight (no turn)
 
-        Turn direction is determined automatically from target_angle
-        relative to current heading, and is locked in ONCE before the
-        loop starts. It is not re-checked every iteration — if the
-        robot overshoots and error crosses zero mid-turn, re-checking
-        the sign would instantly swap which wheel is "outer" vs
-        "inner", which prevents the turn from settling (previously
-        seen as timeouts + leftover error on small curve targets).
+        Turn direction is locked in ONCE before the loop starts so an
+        overshoot can't swap which wheel is outer vs inner.
         """
+        speed        = min(abs(speed), 100)
         curve_ratio  = max(0.0, min(1.0, curve_ratio))
         last_error   = self.get_shortest_error(target_angle)
         integral     = 0
+        d_filt       = 0
         stable_count = 0
         peak_load    = 0
 
-        # Decide turn direction ONCE, before the loop starts.
         turning_right = last_error > 0
 
         self.timer.reset()
-
         while stable_count < 10:
             if self.timer.time() > timeout:
                 print("WARNING: turn_curve() timed out")
@@ -370,57 +462,61 @@ class Robot:
             else:
                 integral = max(min(integral + error, self.TURN_I_CLAMP), -self.TURN_I_CLAMP)
 
-            derivative = error - last_error
-            pwr = (error * self.CURVE_KP) + (integral * self.CURVE_KI) + (derivative * self.CURVE_KD)
-
-            if abs(error) < 0.5:
-                pwr = 0
-            elif abs(pwr) < self.TURN_FLOOR:
-                pwr = self.TURN_FLOOR if pwr > 0 else -self.TURN_FLOOR
-
+            d_filt = self.D_FILTER * d_filt + (1 - self.D_FILTER) * (error - last_error)
+            pwr = error * self.CURVE_KP + integral * self.CURVE_KI + d_filt * self.CURVE_KD
+            pwr = self._apply_floor(pwr, error, self.CURVE_FLOOR, self.CURVE_MIN_FLOOR)
             pwr = int(max(min(pwr, speed), -speed))
 
-            # Inner wheel is a fixed ratio of outer wheel power
             inner_pwr = int(pwr * curve_ratio)
 
             if turning_right:
-                # Turning right: left = outer, right = inner
+                # left = outer, right = inner
                 self.left_motor.dc(pwr)
                 self.right_motor.dc(inner_pwr)
             else:
-                # Turning left: right = outer, left = inner
+                # right = outer, left = inner
                 self.right_motor.dc(-pwr)
                 self.left_motor.dc(-inner_pwr)
 
             last_error   = error
             peak_load    = max(peak_load, self._peak_load())
-            stable_count = stable_count + 1 if abs(error) < 0.6 else 0
+            stable_count = stable_count + 1 if abs(error) < self.TURN_BAND else 0
             wait(10)
 
-        self.left_motor.stop()
-        self.right_motor.stop()
+        self.left_motor.brake()
+        self.right_motor.brake()
         wait(self.SETTLE_TIME)
         self.log_result("Curve Turn", target_angle, peak_load)
 
-    def move_attachment(self, port, degrees, speed, then=Stop.HOLD, wait_done=True):
-        m = Motor(port)
-        m.run_angle(speed, degrees, then=then, wait=wait_done)
+    # ────────────────────────────────────────────────────────────────────────
+    # ATTACHMENTS
+    # ────────────────────────────────────────────────────────────────────────
+
+    def move_attachment(self, port, degrees, speed, wait_done=True, sleep=0, then=Stop.HOLD):
+        if port not in self.attachments:
+            print("WARNING: Port Not Defined")
+            return
+        self.attachments[port].run_angle(speed, degrees, then=then, wait=wait_done)
+        if not wait_done:
+            wait(sleep)
 
     def move_attachment_stalled(self, port, speed, torque_limit=40):
-        m = Motor(port)
-        m.run_until_stalled(speed, then=Stop.HOLD, duty_limit=torque_limit)
+        if port not in self.attachments:
+            print("WARNING: Port Not Defined")
+            return
+        self.attachments[port].run_until_stalled(speed, then=Stop.HOLD, duty_limit=torque_limit)
 
-
-def main():
-    bot = Robot()
-    bot.gyro_reset()
-    bot.straight(200, 400)
-    bot.turn_tank(90)
-    bot.turn_pivot(0, pivot_side="right")
-    bot.turn_curve(75)
-    bot.move_attachment(Port.B , 500 , 500 )
-    bot.print_diagnostic_report()
-
-
-if __name__ == "__main__":
-    main()
+    def move_attachment_torque(self, port, speed, timeout=5000):
+        """High-torque movement with safety timeout."""
+        if port not in self.attachments:
+            print("WARNING: Port Not Defined")
+            return
+        m = self.attachments[port]
+        m.run(speed)
+        wait(100)  # let it spin up before checking for stall
+        self.timer.reset()
+        while self.timer.time() < timeout:
+            if abs(m.speed()) < 5:
+                break
+            wait(10)
+        m.stop()
