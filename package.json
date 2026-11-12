@@ -18,6 +18,6 @@
   },
   "homepage": "https://github.com/regg001/RMT-FLL-2026-2027-Python-Library#readme",
   "dependencies": {
-    "bootstrap": "^5.3.9"
+    "bootstrap": "^6.0.0-alpha.1"
   }
 }
