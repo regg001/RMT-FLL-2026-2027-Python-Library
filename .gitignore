@@ -2,7 +2,7 @@ Light_Test.py
 Motor_test.py
 __pycache__/
 .vscode/
-
+node_modules/
 index.html
 Unearthedtp.css
 
