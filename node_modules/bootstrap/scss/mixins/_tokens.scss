@@ -1,9 +1,0 @@
-// Mixin to output tokens as CSS custom properties
-
-// scss-docs-start mixin-tokens
-@mixin tokens($map) {
-  @each $prop, $value in $map {
-    #{$prop}: #{$value};
-  }
-}
-// scss-docs-end mixin-tokens

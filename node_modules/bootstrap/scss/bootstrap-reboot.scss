@@ -1,6 +1,0 @@
-@use "banner" with (
-  $file: "Reboot"
-);
-
-@forward "root";
-@forward "content/reboot";
