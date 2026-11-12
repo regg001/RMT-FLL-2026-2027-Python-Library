@@ -1,0 +1,23 @@
+{
+  "name": "rmt-fll-2026-2027-python-library",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/regg001/RMT-FLL-2026-2027-Python-Library.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/regg001/RMT-FLL-2026-2027-Python-Library/issues"
+  },
+  "homepage": "https://github.com/regg001/RMT-FLL-2026-2027-Python-Library#readme",
+  "dependencies": {
+    "bootstrap": "^5.3.9"
+  }
+}
