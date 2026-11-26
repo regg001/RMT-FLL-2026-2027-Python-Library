@@ -90,7 +90,7 @@ class Robot:
     CURVE_KD = 8.0
     CURVE_KI = 0.06
 
-    def __init__(self, left_port=Port.E, right_port=Port.A, attach_ports=()):
+    def __init__(self, left_port=Port.A, right_port=Port.B, attach_ports=()):
         """
         attach_ports: optional list of attachment ports, e.g. (Port.F, Port.B).
         Each is registered with CLOCKWISE direction. For a reversed motor,
