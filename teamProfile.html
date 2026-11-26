@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Team R.M.T.</title>
+	<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+	<link rel="stylesheet" href="bioglowWebsite.css">
+</head>
+
+<body>
+	<!-- Navbar -->
+	<nav class="navbar sticky-top md:navbar-expand bg-1 fg-2">
+		<div class="container-fluid">
+
+			<!-- Logo/Brand -->
+			<a class="navbar-brand" href="#">
+				<img src="Images/Unearthed_logo.png" alt="Logo" width="50" height="40" class="d-inline-block align-text-center">
+				Team R.M.T.
+			</a>
+			<!---------------->
+
+			<!-- Main Content/Drawer -->
+			<button class="btn-icon navbar-toggler" type="button" data-bs-toggle="drawer" data-bs-target="#navbarTopDrawer"
+				aria-controls="navbarTopDrawer" aria-expanded="false" aria-label="Toggle navigation">
+				<span class="navbar-toggler-icon" aria-hidden="true"></span>
+			</button>
+			<dialog class="drawer drawer-top" tabindex="-1" id="navbarTopDrawer" aria-labelledby="navbarTopDrawerLabel">
+				<div class="drawer-header">
+					<h5 class="drawer-title" id="navbarTopDrawerLabel">Navigation</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="drawer" aria-label="Close"></button>
+				</div>
+				<!-- Drawer Close -->
+				<div class="drawer-body">
+					<ul class="navbar-nav me-auto mb-2 md:mb-0 mx-auto">
+						<li class="nav-item">
+							<a class="nav-link" href="teamProfile.html">Team Profile</a>
+						</li>
+						<li class="nav-item">
+							<button class="nav-link" type="button" data-bs-toggle="menu" aria-expanded="false">Robot
+								Game</button>
+							<div class="menu">
+								<a class="menu-item" href="#">Game Plan</a>
+								<hr class="menu-divider">
+								<a class="menu-item" href="#">Robot Design</a>
+								<a class="menu-item" href="#">Programming</a>
+							</div>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link" href="#">Innovation Project</a>
+						</li>
+					</ul>
+				</div>
+			</dialog>
+			<!-- Content Close -->
+		</div>
+	</nav>
+
+	<br>
+
+	<section class="Opening">
+		<div class="opening-container card border-0 rounded-0 w-100 position-relative">
+			<img src="Images/Image Carousel/Unearthed_teamphoto.jpg" alt="Overlay Image"
+				class="card-img rounded-0 w-100 h-auto">
+			<div
+				class="overlay card-img-overlay w-100 mx-auto bg-white opacity-75 d-flex d-md-block align-items-center rounded-0">
+				<div class="card-body p-0 d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between mx-auto" style="width: 80%;">
+					<div class="container-fluid p-0 w-100">
+						<div class="row align-items-center w-100 m-0">
+							<div class="col-md-7 p-0 order-1 order-md-1">
+								<h1 class="card-text text-dark fw-bold ps-4" style="font-size:5.5vw;">We're Team R.M.T.</h1>
+								<h5 class="card-text text-dark ps-5" style="font-size:2vw;">Join us on our robotics
+									experience and stay for the ride!</h5>
+							</div>
+							<div
+								class="col-md-5 d-flex flex-column align-items-start align-items-md-end p-0 mt-4 mt-md-0 gap-3 order-2 order-md-2">
+								<button type="button"
+									class="theme-success btn-subtle btn-md px-4 py-2 py-md-3 text-start text-md-end w-auto"> Check Out Our
+									Innovation Project ->
+								</button>
+								<button type="button"
+									class="theme-danger btn-subtle btn-md px-4 py-2 py-md-3 text-start text-md-end w-auto"> Check Out Our
+									Robot Game & Design
+									-></button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+	<script type="module" src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
