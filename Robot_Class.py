@@ -49,10 +49,10 @@ class Robot:
     # ── Floor Values ─────────────────────────────────────────────────────────
     STR_FLOOR = 25
 
-    TURN_FLOOR       = 19   # tank floor far from target
-    TURN_MIN_FLOOR   = 14   # tank floor at target (lowest dc that still rotates)
+    TURN_FLOOR       = 23   # tank floor far from target
+    TURN_MIN_FLOOR   = 18  # tank floor at target (lowest dc that still rotates)
     PIVOT_FLOOR      = 28
-    PIVOT_MIN_FLOOR  = 15
+    PIVOT_MIN_FLOOR  = 23
     CURVE_FLOOR      = 25
     CURVE_MIN_FLOOR  = 12
     FLOOR_ZONE       = 4    # degrees over which floor fades from full to MIN
@@ -76,14 +76,13 @@ class Robot:
     STR_KI = 0.02
 
     # ── Turn PID (tank) ──────────────────────────────────────────────────────
-    TURN_KP = 2.5
-    TURN_KD = 10
-    TURN_KI = 0.01
-
+    TURN_KP = 6.250
+    TURN_KD = 14
+    TURN_KI = 0.05
     # ── Pivot PID ────────────────────────────────────────────────────────────
-    PIVOT_KP = 3.0
-    PIVOT_KD = 12
-    PIVOT_KI = 0.01
+    PIVOT_KP = 7
+    PIVOT_KD = 14
+    PIVOT_KI = 0.05
 
     # ── Curve Turn PID ───────────────────────────────────────────────────────
     CURVE_KP = 3.0
