@@ -7,6 +7,8 @@
 	<title>Team R.M.T.</title>
 	<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
 	<link rel="stylesheet" href="bioglowWebsite.css">
+	<link rel="stylesheet" href="https://jsdelivr.net">
+
 </head>
 
 <body>
@@ -98,7 +100,6 @@
 									Check Out Our Robot Game & Design ->
 								</button>
 							</div>
-
 						</div>
 					</div>
 				</div>
@@ -107,25 +108,42 @@
 	</section>
 
 	<br>
-	
+
 	<section class="Member-Profiles">
-		<div id="carouselProfiles" class=""carousel slide">
+		<div id="carouselProfiles" class="carousel slide carousel-overlay w-25" data-bs-ride="true">
 			<div class="carousel-inner rounded-5">
+
 				<div class="carousel-item active">
-					<div class="card card-row theme-primary" style="max-width: 20vw;">
-						<img src="Images/Card Carousel (Mugshots)/oliverMugshot.jpg" class="card-img-start" alt="Oliver Mugshot">
-						<div class="card-body">
-							<h4 class="card-title">Oliver - Senior</h4>
-							<p class="card-text">Favorite Color: Blue <br> ...</p>
-							<p class="card-text"><small class="fg-2">Quote: "..."</small></p>
-						</div>
-					</div>
-				</div>"
+					<img src="Images/Card Carousel (Mugshots)/oliverMugshot.jpg" class="object-fit-cover d-block w-100 ratio-9x16"
+						alt="Oliver Mugshot">
+				</div>
+
+				<div class="carousel-item">
+					<img src="Images/Card Carousel (Mugshots)/rubyMugshot.jpg" class="object-fit-cover d-block w-100 ratio-9x16" alt="Ruby Mugshot">
+				</div>
+
+			</div>
+			<div class="carousel-overlay-controls">
+				<button class="btn-icon btn-sm btn-subtle theme-secondary" type="button" data-bs-target="#carouselProfiles" data-bs-slide="prev">
+					<span class="carousel-icon-prev" aria-hidden="true"></span>
+					<span class="visually-hidden">Previous</span>
+				</button>
+				<button class="btn-icon btn-sm btn-subtle theme-secondary" type="button" data-bs-target="#carouselProfiles" data-bs-slide="next">
+					<span class="carousel-icon-next" aria-hidden="true"></span>
+					<span class="visually-hidden">Next</span>
+				</button>
 			</div>
 		</div>
 	</section>
 
-	<script type="module" src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+	<script type="module">
+  import { Carousel } from './node_modules/bootstrap/dist/js/bootstrap.bundle.min.js';
+
+  new Carousel('#carouselProfiles', {
+    autoplay: false
+  });
+</script>
+
 </body>
 
 </html>
